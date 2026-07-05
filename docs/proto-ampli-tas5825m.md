@@ -13,6 +13,13 @@
   existent). On construit donc notre propre carte, en réutilisant le bloc DAC déjà validé par
   Sonocotta dans son design "Esparagus/Louder" (`github.com/sonocotta/esparagus-media-center`,
   `hardware/5-esparagus-audio-brick/rev-a`).
+- Schémas et datasheet de référence sauvegardés localement dans [`refs/`](./refs/) :
+  - [`refs/esparagus-louder-schematic.pdf`](./refs/esparagus-louder-schematic.pdf) — design Sonocotta
+    (EasyEDA), source du bloc DAC repris en §3.
+  - [`refs/bassowl-hat-schematic.pdf`](./refs/bassowl-hat-schematic.pdf) — design indépendant
+    (Darmur, KiCad, HAT Raspberry Pi), utilisé pour croiser les points du §7.
+  - [`refs/tas5825m-datasheet.pdf`](./refs/tas5825m-datasheet.pdf) — datasheet officiel TI, source
+    d'autorité qui a permis de corriger une erreur de lecture du schéma (voir §7).
 - On prototype **1 seule puce d'abord**, pas les 4 du banc final, pour isoler les variables :
   une erreur de valeur de composant coûte un composant à changer, pas une révision de PCB complète.
 - Banc de test choisi : un **XIAO ESP32-S3** (déjà en notre possession), pas la Teensy — la Teensy
@@ -45,14 +52,30 @@ Repris du bloc "DAC" du schéma Esparagus (`Louder Esparagus (DUAL POWER)`, feui
 |---|---|---|
 | U3 | TAS5825MRHBR (QFN-32) | Seul composant à faire assembler / souder à l'air chaud |
 
-### Filtre de sortie LC (×2 voies, A et B)
+### Condensateurs de bootstrap (obligatoires — corrigé après vérification datasheet, voir §7)
+
+Datasheet TAS5825M §10.1.2 : chaque demi-pont (BST_x) a besoin d'un condensateur **0.47 µF entre
+BST_x et son OUT_x correspondant** pour générer la tension de grille du NMOS high-side. Ce ne sont
+**pas** des composants de filtre — je les avais mal classés dans une première lecture du schéma.
 
 | Réf. | Valeur | Rôle |
 |---|---|---|
-| L7, L2 | 10 µH | Self, voie A |
+| C29 | 470 nF | Bootstrap BST_A+ ↔ OUT_A+ |
+| C30 | 470 nF | Bootstrap BST_A- ↔ OUT_A- |
+| C40 | 470 nF | Bootstrap BST_B+ ↔ OUT_B+ |
+| C41 | 470 nF | Bootstrap BST_B- ↔ OUT_B- |
+
+### Filtre EMI de sortie (optionnel — confirmé par datasheet §10.1.4)
+
+Le TAS5825M est nativement "inductor-less" ; ce filtre L-C ne sert qu'à réduire les émissions EMI
+selon le contexte d'installation, et peut être remplacé par une simple ferrite + condo dans les cas
+basse puissance (confirmé par comparaison avec le schéma BassOwl-HAT, qui utilise justement une
+ferrite 120R@100MHz au lieu d'une self réelle — deux implémentations valables du même étage).
+
+| Réf. | Valeur | Rôle |
+|---|---|---|
+| L7, L2 | 10 µH | Self, voie A (variante Esparagus — une ferrite conviendrait aussi) |
 | L3, L4 | 10 µH | Self, voie B |
-| C29, C30 | 470 nF | Condo filtre côté puce, voie A |
-| C40, C41 | 470 nF | Condo filtre côté puce, voie B |
 | C44, C45 | 680 nF | Condo filtre côté sortie, voie A |
 | C47, C48 | 680 nF | Condo filtre côté sortie, voie B |
 
@@ -70,7 +93,7 @@ Repris du bloc "DAC" du schéma Esparagus (`Louder Esparagus (DUAL POWER)`, feui
 |---|---|---|
 | R10 | 10 kΩ | Pull-up PDN# → 3V3 (actif haut = ampli activé) |
 | R12, R13, R14 | 10 kΩ | Pull-ups GPIO0/1/2 → WARNZ/FAULTZ/SDOUT |
-| 1 résistance ADR | 1k / 4.7k / 15k / court-circuit | Adresse I2C (0x0C-0x0F) — ⚠️ à confirmer contre le datasheet TI avant de souder (non vérifié, voir §7) |
+| 1 résistance ADR | 0Ω / 1k / 4.7k / 15k selon adresse voulue | Adresse I2C — **table officielle confirmée (datasheet §9.5.2, Table 9-5)**, voir §7 |
 
 ### Connecteurs
 
@@ -129,11 +152,24 @@ qui le pilote — il écoute juste un bus TDM + I2C. Deux réutilisations identi
 
 ## 7. Points ouverts / à vérifier avant de graver
 
-- [ ] Câblage exact des broches **BST_A±/BST_B±** (bootstrap du pont en H) — à confirmer visuellement
-  dans EasyEDA sur le schéma Esparagus, pas sur une extraction texte.
-- [ ] Table **résistance ADR → adresse I2C** — à recouper avec le datasheet officiel TAS5825M avant
-  de choisir la valeur finale (les valeurs 1k/4.7k/15k/court-circuit viennent du design Sonocotta,
-  pas encore vérifiées indépendamment).
+- [x] **Câblage BST_A±/BST_B±** — confirmé par le datasheet (§10.1.2) : un condensateur **0.47 µF
+  entre chaque BST_x et son OUT_x correspondant**, obligatoire (génère la tension de grille du NMOS
+  high-side). Ce sont C29/C30/C40/C41 dans la BOM — voir §3. Ma première lecture du schéma Esparagus
+  les avait classés à tort comme "filtre côté puce" ; corrigé.
+- [x] **Table résistance ADR → adresse I2C** — confirmée par le datasheet (§9.5.2, Table 9-5) :
+
+  | Résistance ADR → GND | Adresse I2C |
+  |---|---|
+  | 0 Ω | 0x4C |
+  | 1 kΩ | 0x4D |
+  | 4.7 kΩ | 0x4E |
+  | 15 kΩ | 0x4F |
+
+  (Correction : ma lecture initiale du silkscreen Esparagus avait un appariement différent — le
+  datasheet fait foi.)
+- [x] **Filtre EMI de sortie** — confirmé optionnel (datasheet §10.1.4, chip "inductor-less" en
+  natif) ; self réelle (Esparagus) ou ferrite+condo (BassOwl) sont deux implémentations valables du
+  même étage, pas un point à trancher.
 - [ ] Choix des **GPIO précis du XIAO S3** pour BCLK/WS/DATA/SDA/SCL (vérifier pinout Seeed,
   éviter les broches réservées flash/strapping).
 - [ ] Taille/pitch exact du boîtier TAS5825M (datasheet) avant achat de l'adaptateur QFN si soudure
