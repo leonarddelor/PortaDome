@@ -99,15 +99,38 @@ rupture de stock chez LCSC.
 |---|---|---|
 | R10 | 10 kΩ | Pull-up PDN# → 3V3 (actif haut = ampli activé) |
 | R12, R13, R14 | 10 kΩ | Pull-ups GPIO0/1/2 → WARNZ/FAULTZ/SDOUT |
-| 1 résistance ADR | 0Ω / 1k / 4.7k / 15k selon adresse voulue | Adresse I2C — **table officielle confirmée (datasheet §9.5.2, Table 9-5)**, voir §7 |
+| 4 résistances ADR (0Ω, 1k, 4.7k, 15k — une par adresse possible) | 0x4C/0x4D/0x4E/0x4F | Adresse I2C — **table officielle confirmée (datasheet §9.5.2, Table 9-5)**, voir §7. Les 4 sont soudées en permanence, mais **une seule doit être active à la fois** — voir note pont de soudure ci-dessous. |
+
+⚠️ **Important pour le layout PCB** : chaque résistance ADR doit avoir un **pont de soudure ouvert
+par défaut** (2 pastilles rapprochées, pas de piste continue) entre elle et GND — pas une piste
+soudée d'usine. Si les 4 sont reliées à GND par une piste continue, la résistance 0Ω court-circuite
+le nœud ADR en permanence et écrase les 3 autres (adresse bloquée sur 0x4C). Une seule des 4
+pastilles-pont doit être fermée (goutte de soudure) après réception de la carte, selon l'adresse
+choisie.
 
 ### Connecteurs
 
 | Réf. | Composant | Rôle |
 |---|---|---|
-| Bornier 4 pins | type DB127V-5.0-4P ou équivalent | Sortie haut-parleur (voie A + voie B) |
-| Header simple | pas 2.54mm | LRCLK/SCLK/SDIN + SDA/SCL vers le XIAO S3 |
+| CN1 | DORABO DB128L-5.08-4P-GN-S, LCSC `C2827883` (16A, en stock) | Sortie haut-parleur (voie A + voie B) |
+| U2 | JST-XH B7B-XH-A(LF)(SN), 7 pos., LCSC `C161874` | Liaison vers le XIAO S3 (détrompé + verrouillage) — voir table de brochage ci-dessous |
 | Jumpers PBTL | — | Laissés ouverts (mode stéréo, pas de pont) |
+
+**Brochage U2 (connecteur XIAO S3)** :
+
+| Broche | Signal |
+|---|---|
+| 1 | VCC (3.3V) |
+| 2 | GND |
+| 3 | BCLK (SCLK) |
+| 4 | WS (LRCLK) |
+| 5 | SDIN (DATA) |
+| 6 | SDA |
+| 7 | SCL |
+
+Boîtier assorti côté câble : **XHP-7** (JST, LCSC `C144406`) + contacts à sertir (série SXH) — ou
+câble JST-XH 7 broches pré-serti du commerce (format aussi utilisé comme cordon d'équilibrage LiPo
+6S, facile à trouver).
 
 ### Optionnel
 
