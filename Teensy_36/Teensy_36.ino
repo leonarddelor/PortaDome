@@ -35,8 +35,7 @@ void setup() {
 void loop() {
   if (playWav1.isPlaying() == false) {
     Serial.println("Lecture du fichier...");
-    // Remplace "TRACK1.WAV" par le nom exact de ton fichier sur la SD
     playWav1.play("TRACK1.WAV"); 
-    delay(10); // Court délai pour laisser le lecteur s'initialiser
+    delay(500); // On attend une demi-seconde pour laisser le temps au fichier de se lancer
   }
 }
