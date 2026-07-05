@@ -4,6 +4,9 @@
 > §7/§10-11 : option v2 "bancs custom" TAS5825M). Objectif : valider le comportement TDM/I2C réel
 > de la puce sur un banc de test léger, avant de concevoir le banc de production 4 puces (8 voies)
 > qui sera ensuite rebranché sur la Teensy.
+>
+> **Schéma final (validé) : [`TAS5825M_BOARD.pdf`](./TAS5825M_BOARD.pdf)** — export EasyEDA, relu et
+> corrigé au fil de l'eau (voir §7 pour l'historique des points corrigés).
 
 ## 1. Pourquoi ce proto (rappel de la démarche)
 
@@ -131,6 +134,15 @@ choisie.
 Boîtier assorti côté câble : **XHP-7** (JST, LCSC `C144406`) + contacts à sertir (série SXH) — ou
 câble JST-XH 7 broches pré-serti du commerce (format aussi utilisé comme cordon d'équilibrage LiPo
 6S, facile à trouver).
+
+### Alimentation / protection anti-inversion de polarité
+
+| Réf. | Composant | Rôle |
+|---|---|---|
+| U3 | DORABO DB128L-5.08-2P-GN-S, LCSC `C395868` (18A, en stock) | Entrée PVDD (alim de labo) |
+| Q1 | AO4407A, P-channel MOSFET SOP-8, LCSC `C16072` (30V/-12A) | Coupe le courant si la polarité est inversée — Source côté U3 (brut), Drain côté rail PVDD protégé |
+| D1 | MM1Z15, Zener 15V SOD-123, LCSC `C115219` | Cathode → Gate, Anode → Source : clampe Vgs pour rester dans la marge de sécurité (±25V max) |
+| R9 | 100 kΩ | Tirage Gate → GND (fonctionne avec D1) — ⚠️ ne pas mettre à 0Ω, ça annule la protection (voir erreur corrigée en §7) |
 
 ### Optionnel
 
