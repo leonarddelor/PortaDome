@@ -50,7 +50,7 @@ Repris du bloc "DAC" du schéma Esparagus (`Louder Esparagus (DUAL POWER)`, feui
 
 | Réf. | Composant | Notes |
 |---|---|---|
-| U3 | TAS5825MRHBR (QFN-32) | Seul composant à faire assembler / souder à l'air chaud |
+| U3 | TAS5825MRHBR (VQFN-32, 5×5mm) | LCSC **C471049** (en stock, ~2.57 $/pièce à l'unité) — seul composant à faire assembler / souder à l'air chaud |
 
 ### Condensateurs de bootstrap (obligatoires — corrigé après vérification datasheet, voir §7)
 
@@ -74,10 +74,16 @@ ferrite 120R@100MHz au lieu d'une self réelle — deux implémentations valable
 
 | Réf. | Valeur | Rôle |
 |---|---|---|
-| L7, L2 | 10 µH | Self, voie A (variante Esparagus — une ferrite conviendrait aussi) |
-| L3, L4 | 10 µH | Self, voie B |
+| L7, L2 | 10 µH — **Chilisin MHCI06024-100M-R8A, LCSC `C280584`** (4A Isat, SMD 7.3×6.6mm, en stock) | Self, voie A |
+| L3, L4 | 10 µH — même référence | Self, voie B |
 | C44, C45 | 680 nF | Condo filtre côté sortie, voie A |
 | C47, C48 | 680 nF | Condo filtre côté sortie, voie B |
+
+⚠️ Ce filtre est **optionnel** (voir §7) — pour le tout premier test, il est possible de laisser ces
+pads vides (sortie directe, sans filtre) et de les peupler seulement une fois la puissance de test
+réelle connue. Le 4A de la self ci-dessus couvre ~38W/4Ω (pleine puissance TAS5825M) avec une marge
+raisonnable ; un modèle 5.4A (Chilisin `C5577800`) serait mieux dimensionné mais est actuellement en
+rupture de stock chez LCSC.
 
 ### Alimentation puce (découplage)
 
@@ -113,9 +119,18 @@ ferrite 120R@100MHz au lieu d'une self réelle — deux implémentations valable
   I2C, + **GND commun**, + **PVDD** depuis l'alim de labo (indépendant du XIAO).
 - Le XIAO S3 utilise la matrice GPIO de l'ESP32 : les broches I2S/I2C ne sont **pas figées**, elles
   se choisissent en firmware (comme dans les `build_flags` `PIN_I2S_FS/SCK/SD` vues chez Sonocotta).
-  ⚠️ Choix des GPIO précis du XIAO S3 **pas encore fait** — à faire en vérifiant la pinout officielle
-  Seeed du XIAO S3 (certaines broches sont réservées : flash SPI, strapping boot) avant de figer le
-  firmware.
+- **Assignation retenue** (vérifiée contre le pinout officiel Seeed) :
+
+  | Signal | Broche XIAO | GPIO |
+  |---|---|---|
+  | BCLK (SCLK) | D0 | GPIO1 |
+  | WS (LRCLK) | D1 | GPIO2 |
+  | DATA (SDIN) | D3 | GPIO4 |
+  | SDA | D4 | GPIO5 |
+  | SCL | D5 | GPIO6 |
+
+  D2/GPIO3 (strapping pin) évité ; D6/D7 (UART par défaut) laissés libres pour garder le monitor
+  série de debug pendant les tests. SDA/SCL sur les pins I2C par défaut (pas de remap nécessaire).
 - Câblage en **Dupont acceptable à <20 cm** pour du TDM 8 voies (~5.6 MHz de BCLK), à condition de :
   - coupler **un fil GND à côté de chaque signal individuellement** (BCLK+GND, WS+GND, DATA+GND,
     SDA+GND, SCL+GND) plutôt qu'un seul GND partagé pour tout le paquet ;
@@ -170,11 +185,14 @@ qui le pilote — il écoute juste un bus TDM + I2C. Deux réutilisations identi
 - [x] **Filtre EMI de sortie** — confirmé optionnel (datasheet §10.1.4, chip "inductor-less" en
   natif) ; self réelle (Esparagus) ou ferrite+condo (BassOwl) sont deux implémentations valables du
   même étage, pas un point à trancher.
-- [ ] Choix des **GPIO précis du XIAO S3** pour BCLK/WS/DATA/SDA/SCL (vérifier pinout Seeed,
-  éviter les broches réservées flash/strapping).
-- [ ] Taille/pitch exact du boîtier TAS5825M (datasheet) avant achat de l'adaptateur QFN si soudure
-  manuelle retenue.
-- [ ] Devis JLCPCB réel une fois le schéma posé (l'estimation §5 est indicative).
+- [x] **GPIO précis du XIAO S3** — vérifiés contre le pinout officiel Seeed, voir §4. BCLK=D0/GPIO1,
+  WS=D1/GPIO2, DATA=D3/GPIO4, SDA=D4/GPIO5, SCL=D5/GPIO6 (D2 strapping évité, D6/D7 UART laissés
+  libres pour le monitor série).
+- [x] **Taille/pitch du boîtier** — confirmé via LCSC (C471049) : VQFN-32, 5×5mm, pitch standard
+  0.5mm. À revérifier une dernière fois sur le dessin mécanique du datasheet avant achat de
+  l'adaptateur QFN si soudure manuelle retenue (précaution, pas un doute réel).
+- [ ] Devis JLCPCB réel une fois le schéma posé (l'estimation §5 est indicative — le prix réel du
+  composant est meilleur que prévu : ~2.57 $/pièce via LCSC C471049, contre 5-8 $ estimés).
 
 ## 8. Plan de test
 
