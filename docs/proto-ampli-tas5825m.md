@@ -228,6 +228,10 @@ qui le pilote — il écoute juste un bus TDM + I2C. Deux réutilisations identi
   l'adaptateur QFN si soudure manuelle retenue (précaution, pas un doute réel).
 - [ ] Devis JLCPCB réel une fois le schéma posé (l'estimation §5 est indicative — le prix réel du
   composant est meilleur que prévu : ~2.57 $/pièce via LCSC C471049, contre 5-8 $ estimés).
+- [x] **Placement + routage PCB terminés** — DRC propre (0 erreur connexion/clearance). Reste une
+  alerte non-bloquante "schematic/PCB netlist mismatch" (due à des nets assignés à la main sur des
+  vias directement en PCB) — laissée telle quelle pour ce proto, à corriger en repartant du schéma
+  pour le futur banc x4.
 
 ## 8. Plan de test
 
