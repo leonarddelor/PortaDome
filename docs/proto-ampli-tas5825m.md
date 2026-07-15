@@ -88,13 +88,21 @@ réelle connue. Le 4A de la self ci-dessus couvre ~38W/4Ω (pleine puissance TAS
 raisonnable ; un modèle 5.4A (Chilisin `C5577800`) serait mieux dimensionné mais est actuellement en
 rupture de stock chez LCSC.
 
-### Alimentation puce (découplage)
+### Alimentation puce (découplage) — liste complète relue depuis le schéma EasyEDA final (C1-C21)
 
-| Réf. | Valeur | Rôle |
-|---|---|---|
-| C42, C43 | 1 µF | Découplage PVDD au plus près du chip |
-| C1 | 1 µF | Découplage zone logique/ADR |
-| C3 | 100 nF | Découplage zone logique/ADR |
+| Valeur | Réf. | Net | Tension recommandée | Rôle |
+|---|---|---|---|---|
+| 470 nF | C3, C5, C7, C17 | BST_x/OUT_x | 25-35V | Bootstrap (obligatoire, voir §7) |
+| 680 nF | C2, C4, C6, C8 | Sortie HP | 25-35V | Filtre EMI optionnel |
+| **390 µF** (ou 470µF pour matcher Esparagus) | **C9, C14** | **PVDD (24V)** | **35-50V** | Réservoir bulk PVDD — ⚠️ électrolytique, boîtier nettement plus gros que les autres condos, vérifier la place au layout |
+| 22 µF | C10, C12, C13, C15, C20, C21 | PVDD/VCC | 25-35V | Découplage intermédiaire |
+| 4.7 µF | C18 | VCC (logique) | 16V | Céramique, décodage zone ADR |
+| 1 µF | C19 | VCC (logique) | 16V | Céramique, décodage zone ADR |
+| 100 nF | C1, C11, C16 | logique | 16V | Petit découplage |
+
+Confirmé contre le datasheet (§10.1.3 : minimum 22µF sur PVDD, largement respecté) et contre le
+schéma de référence Esparagus (qui utilise 470µF, pas 390µF, pour le même rôle — les deux valeurs
+sont valables).
 
 ### Contrôle / status
 
