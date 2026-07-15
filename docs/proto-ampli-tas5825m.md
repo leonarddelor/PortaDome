@@ -34,11 +34,11 @@
 
 ## 2. Architecture retenue pour le proto
 
-- **Puce assemblée en usine** : seul le TAS5825M (QFN-32, boîtier fin, pastille thermique EP) est
-  posé par JLCPCB PCBA (ou soudé nous-même à l'air chaud sur un adaptateur QFN→DIP générique — les
-  deux options sont ouvertes, voir §5).
-- **Passifs soudés à la main** (0805/1206) : filtre LC de sortie, découplage, pull-ups, résistance
-  d'adresse ADR — pour pouvoir ajuster les valeurs sans repasser par un cycle de fab.
+- **Assemblage complet par JLCPCB PCBA** (changement de plan, voir §5) : tous les composants sont
+  posés en usine (QFN de U1 + tous les passifs/connecteurs), plus simple et pas beaucoup plus cher
+  qu'assembler seulement U1 à la main. Les 4 résistances ADR restent posées normalement — le choix
+  de l'adresse (pont de soudure) se fait à la réception de la carte, indépendamment de qui a soudé
+  les résistances.
 - **Alimentation simplifiée pour le proto** : PVDD amené directement depuis une alim de labo (pas
   de connecteur DC ni de protection anti-polarité inversée comme sur le design Sonocotta complet).
   Le 3.3V logique est pris depuis le XIAO S3 ou une alim externe, pas généré sur la carte (on saute
@@ -184,16 +184,19 @@ câble JST-XH 7 broches pré-serti du commerce (format aussi utilisé comme cord
 
 ## 5. Fabrication
 
-- **QFN posé par JLCPCB PCBA** (seul le TAS5825M dans la BOM d'assemblage) — ou **adaptateur
-  QFN→DIP générique + soudure à l'air chaud** (accès confirmé à une station air chaud/refusion).
-  ⚠️ Vérifier le pitch/taille exacts du boîtier TAS5825M dans le datasheet avant d'acheter
-  l'adaptateur.
-- Point délicat en soudure manuelle : la pastille thermique (EP) sous la puce doit être bien
-  mouillée (masse + dissipation), pas seulement les pattes latérales.
-- **Estimation de coût JLCPCB PCBA (ordre de grandeur, pas un devis)** pour un lot de 5 (minimum
-  habituel) : PCB nu (~5 $) + stencil (~12 $) + setup SMT (~8 $) + frais "extended part" (~3 $) +
-  5× TAS5825MRHBR (~30-40 $) → **~55-70 $ pour 5 cartes mono-puce**. À confirmer avec un vrai devis
-  une fois le board dessiné (Gerber + BOM + CPL réels dans le configurateur JLCPCB).
+- **Assemblage complet par JLCPCB PCBA** : tous les composants cochés dans la BOM d'assemblage
+  (pas seulement U1), chacun lié à sa référence LCSC réelle.
+- **Devis réel obtenu (lot de 5 cartes)** :
+  - PCB nu seul : **5.35 $**
+  - PCB + assemblage complet (tous composants) + envoi : **102 $**
+  - Le détail inclut un "Extended Components Fee" de 28 $ (frais par référence classée "Extended"
+    chez JLCPCB — composants moins courants nécessitant un chargement manuel sur leurs machines,
+    voir explication §7 historique).
+  - ⚠️ **À faire** : recalculer le coût avec **seulement U1 assemblé** (reste des composants soudés
+    à la main) pour comparer les deux options avant de valider le choix définitif.
+- Point historique (option abandonnée) : soudure manuelle à l'air chaud du QFN sur adaptateur
+  QFN→DIP générique restait possible si on avait gardé le plan "U1 seul assemblé" — pas retenue,
+  voir ci-dessus.
 
 ## 6. Réutilisabilité du bloc DAC
 
