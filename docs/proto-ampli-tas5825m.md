@@ -186,6 +186,10 @@ câble JST-XH 7 broches pré-serti du commerce (format aussi utilisé comme cord
 
 - **Assemblage complet par JLCPCB PCBA** : tous les composants cochés dans la BOM d'assemblage
   (pas seulement U1), chacun lié à sa référence LCSC réelle.
+- **Cuivre 1oz retenu** (standard, pas 2oz) : les pistes de puissance (0.6mm) ont déjà de la marge
+  pour ~3-4A en 1oz. 2oz coûterait +18$/lot de 5 (+3.60$/carte) pour une meilleure marge
+  thermique/courant, mais pas indispensable pour ce proto — **la température sera mesurée** pendant
+  les tests plutôt que supposée ; upgrade possible plus tard si les mesures le justifient.
 - **Devis réel obtenu (lot de 5 cartes)** :
   - PCB nu seul : **5.35 $**
   - PCB + assemblage complet (tous composants) + envoi : **102 $**
