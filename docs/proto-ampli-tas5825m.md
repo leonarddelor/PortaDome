@@ -192,11 +192,17 @@ câble JST-XH 7 broches pré-serti du commerce (format aussi utilisé comme cord
   - Le détail inclut un "Extended Components Fee" de 28 $ (frais par référence classée "Extended"
     chez JLCPCB — composants moins courants nécessitant un chargement manuel sur leurs machines,
     voir explication §7 historique).
-  - ⚠️ **À faire** : recalculer le coût avec **seulement U1 assemblé** (reste des composants soudés
-    à la main) pour comparer les deux options avant de valider le choix définitif.
+  - Estimation (non confirmée par un vrai devis) pour **seulement U1 assemblé** : ~40-45 $ côté
+    JLCPCB + ~20-40 $ de composants à acheter séparément sur LCSC pour les souder à la main →
+    ~60-85 $ au total, contre 102 $ tout compris. Économie modeste en échange de plusieurs heures
+    de soudure manuelle sur 5 cartes — **assemblage complet retenu**.
 - Point historique (option abandonnée) : soudure manuelle à l'air chaud du QFN sur adaptateur
   QFN→DIP générique restait possible si on avait gardé le plan "U1 seul assemblé" — pas retenue,
   voir ci-dessus.
+- **Comparaison avec une carte du commerce** : ~20.40 $/carte (102 $ / 5) est cohérent avec le prix
+  du marché pour un circuit ampli équivalent — le "Louder ESP32 Plus" de Sonocotta (~25-30 $/carte)
+  inclut en plus un ESP32 (quelques dollars en volume), donc la majorité de son prix vient déjà du
+  même circuit ampli que le nôtre. Pas de surcoût lié au fait d'avoir conçu notre propre carte.
 
 ## 6. Réutilisabilité du bloc DAC
 
