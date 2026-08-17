@@ -32,6 +32,37 @@
   bloc DAC lui-même est indépendant du cerveau qui le pilote (Teensy en prod, ESP32 en test) — voir
   §6.
 
+### Alternative évaluée et écartée (2026-08-17)
+
+**Pourquoi aucun ampli I2S du commerce ne convient.** L'architecture impose trois contraintes
+*simultanées* : du **TDM** (pas de l'I2S stéréo), de l'**I2C accessible** (adresse + DSP par puce),
+et **pas de MCU embarqué** (sinon domaine d'horloge propre → dérive entre haut-parleurs, le mode de
+défaillance que toute l'architecture existe pour éviter). Chaque produit du marché rate au moins
+l'une des trois :
+
+| Produit | Prix | Ce qui bloque |
+|---|---|---|
+| MAX98357A | ~3 $ | Mono, I2S stéréo simple, ni TDM ni I2C — incapable de partager un bus à 25 voies |
+| Sonocotta "Louder ESP32" | ~25-30 $ | Embarque son propre ESP32 → son propre domaine d'horloge |
+| HAT Raspberry Pi (BassOwl, HiFiBerry) | ~30-50 $ | Stéréo, et liés au Pi |
+
+**L'alternative réelle**, en revanche, existe : **DAC multicanal parlant TDM + modules class-D
+analogiques du commerce** (type TPA3116, ~3-5 $/carte). Un DAC 8 canaux fait le démultiplexage, des
+amplis analogiques bêtes font la puissance derrière.
+
+- **Pour** : aucune conception de PCB, aucun QFN, tout en stock permanent.
+- **Contre** : (1) **25 liaisons analogiques** entre DAC et amplis — bruit, diaphonie et câblage
+  conséquent dans le volume du dôme ; (2) **le DSP par voie disparaît** — les biquads, le DRC, l'AGL
+  et les protections thermique/excursion du TAS5825M sur lesquels la spec §7/§9 compte seraient à
+  refaire en amont ; (3) plus de boîtiers et de distribution d'alimentation.
+
+**Écartée** pour ces trois raisons, principalement la perte du DSP par voie. **À reconsidérer
+sérieusement si le proto invalide le TAS5825M** (init I2C impraticable, TDM instable, thermique
+rédhibitoire) — c'est le plan B, et il est crédible.
+
+⚠️ La référence de DAC multicanal TDM n'a **pas** été choisie ni vérifiée sur datasheet : si ce plan B
+est réactivé, c'est le premier point à instruire.
+
 ## 2. Architecture retenue pour le proto
 
 - **Assemblage complet par JLCPCB PCBA** (changement de plan, voir §5) : tous les composants sont
@@ -154,7 +185,16 @@ câble JST-XH 7 broches pré-serti du commerce (format aussi utilisé comme cord
 
 ### Optionnel
 
-- Petit dissipateur thermique (bonne pratique class-D, cf. spec §8 sécurité).
+- **Dissipateur thermique — décision reportée après mesure, pas avant.** Sur un VQFN à pavé exposé,
+  la chaleur sort par le **dessous** (pavé → vias → cuivre), pas par le dessus : le dessus du boîtier
+  est de la résine, un isolant. Un radiateur collé dessus n'apporterait presque rien. Le vrai
+  dissipateur, c'est la matrice de 16 vias sous U1 + les plans de masse cousus (voir §7).
+  Ordre de grandeur : un VQFN 5×5 sur 2 couches en 1oz se situe vers 20-30 °C/W, donc les ~7 W/puce
+  annoncés dans la spec §8 **ne sont pas dissipables en continu** — ce chiffre est un cas
+  sinus-pleine-puissance. Sur du programme musical réel (10-20 dB de facteur de crête) on dissipe
+  plutôt 1-2 W, ce que la carte encaisse. ⚠️ Conséquence pratique pour le banc : **ne pas laisser
+  tourner un sinus à pleine puissance sans surveiller la température** — c'est le seul scénario qui
+  cuit la puce, et c'est un scénario d'établi, pas d'usage. Mesurer avant d'acheter quoi que ce soit.
 
 ## 4. Câblage XIAO ESP32-S3 ↔ carte ampli
 
@@ -249,10 +289,51 @@ qui le pilote — il écoute juste un bus TDM + I2C. Deux réutilisations identi
   l'adaptateur QFN si soudure manuelle retenue (précaution, pas un doute réel).
 - [ ] Devis JLCPCB réel une fois le schéma posé (l'estimation §5 est indicative — le prix réel du
   composant est meilleur que prévu : ~2.57 $/pièce via LCSC C471049, contre 5-8 $ estimés).
-- [x] **Placement + routage PCB terminés** — DRC propre (0 erreur connexion/clearance). Reste une
-  alerte non-bloquante "schematic/PCB netlist mismatch" (due à des nets assignés à la main sur des
-  vias directement en PCB) — laissée telle quelle pour ce proto, à corriger en repartant du schéma
-  pour le futur banc x4.
+- [x] **Pad 33 (pavé exposé) de U1 non relié à GND au schéma** — trouvé le 2026-08-17. La broche
+  existait bien sur le symbole mais était restée en l'air. Conséquence : le pavé sous la puce
+  formait un **îlot de cuivre flottant**, le plan de masse le contournait au lieu d'y entrer, et les
+  16 vias thermiques descendaient vers un second îlot flottant en dessous. Double effet — thermique
+  (la chaleur ne pouvait s'évacuer que dans deux petites plaques isolées au lieu du plan entier) et
+  électromagnétique (une surface flottante sous la puce, à côté des nœuds de commutation).
+  **Ni la DRC ni le rendu 2D ne signalent ce défaut** : un via ou un pad sans net n'est pas une
+  violation de règle, juste du cuivre inutile. Corrigé en câblant la broche 33 à GND au schéma, puis
+  `Update to PCB`. Vérification qui fait foi : le cuivre du dessous **touche** les vias au lieu de
+  faire des arcs de contournement autour d'elles.
+- [x] **Placement + routage PCB refaits** (2026-08-17), après relecture du rendu 2D :
+  - **Selfs rapprochées et appairées.** Avant : L2/L3 à ~8 mm de U1, L1/L4 dans les coins hauts à
+    ~25 mm — soit une self près et une self loin **dans chaque voie**. Comme chaque voie est un pont
+    (OUT+/OUT−), les deux moitiés n'étaient pas appariées et leurs champs ne s'annulaient pas. Après :
+    les quatre entre ~13 et ~18 mm, appairées par voie. Ce qui compte ici est la **symétrie dans une
+    paire** plus que la distance absolue ; les condensateurs de découplage gardent la priorité sur
+    les selfs pour la place la plus proche de la puce.
+  - **4ᵉ trou de vis ajouté en bas à droite**, à côté de U3. Le bornier à vis PVDD est le seul
+    composant qui reçoive un **couple appliqué à la main**, et il était sur le porte-à-faux : la
+    carte fléchissait à chaque serrage, et ce sont les joints de brasure du QFN qui payent. U3 a été
+    décalé vers la gauche pour dégager le coin.
+  - **Plans de masse sur les deux couches + couture de vias GND** (grille 5 mm, resserrée à 2,5 mm
+    autour de U1, le long des pistes OUT et sur le pourtour de la carte). Posée avec l'outil
+    **Suture Via** d'EasyEDA Pro, qui assigne le net lui-même — c'est ce qui évite de retomber dans
+    l'alerte de netlist ci-dessous.
+  - **DRC propre, 0 erreur**, alerte netlist comprise.
+- [x] **Alerte "schematic/PCB netlist mismatch" résolue** — elle venait bien de nets assignés à la
+  main sur des vias directement dans le PCB, comme supposé en juillet. `Import Changes` la fait
+  disparaître mais **efface du même coup les nets des vias** : c'est un aller-retour, pas une
+  correction. La sortie de boucle est d'utiliser l'outil Suture Via plutôt que d'étiqueter des vias
+  à la main. ⚠️ **Règle d'ordre** qui découle de tout ça : tout ce qui n'existe que dans le PCB
+  (nets de vias, couture, régions de cuivre) se fait **en dernier**, après le dernier import depuis
+  le schéma. Sinon on le perd et on recommence.
+  Solution définitive pour le banc ×4 : mettre les 16 vias thermiques **dans l'empreinte** de U1,
+  où elles héritent du net du pavé et où aucun import ne peut les effacer.
+- [ ] **Motif des trous de vis à coter** — 4 trous M3 (perçage 3,2 mm, dégagement 6,5 mm sans cuivre
+  ni composant). Les cotes exactes depuis un coin de carte sont à relever et à noter ici : la
+  mécanique du dôme doit pouvoir les lire **sans ouvrir le PCB**. Carte : 54,6 × 60,3 mm.
+
+  | Trou | X (mm) | Y (mm) |
+  |---|---|---|
+  | haut-gauche | _à relever_ | _à relever_ |
+  | haut-droite | _à relever_ | _à relever_ |
+  | bas-gauche | _à relever_ | _à relever_ |
+  | bas-droite (près de U3) | _à relever_ | _à relever_ |
 
 ## 8. Plan de test
 
