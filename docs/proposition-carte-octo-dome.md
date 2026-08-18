@@ -127,6 +127,27 @@ dôme restent verrouillées entre elles (le PC n'a aucune influence sur l'aligne
 - **Thermique** : classe-D ~88 % de rendement → ~7 W/puce à puissance modérée. **Plan de cuivre +
   flux d'air** dans la boîte. Foldback thermique du TAS5825M en protection ultime.
 
+### Points ouverts sur l'alimentation (relevés le 2026-08-18)
+
+Ce qui précède est un dimensionnement d'ordre de grandeur. Tout ce qui se trouve **entre l'alim et
+les puces** reste à concevoir :
+
+1. **Impédance des haut-parleurs — non spécifiée.** Elle n'apparaît dans aucun document et aucun
+   modèle de HP n'est choisi. C'est pourtant elle qui fixe la puissance réelle par voie, donc le
+   budget d'alimentation *et* le choix de PVDD. **À trancher en premier** : tout le reste en dépend.
+2. **Appel de courant à la mise sous tension.** ~13 modules × 2 × 390 µF ≈ **10 mF** de réserve
+   totale. Un SMPS de 600 W part en sécurité ou fait disjoncter sur une capacité pareille. Il faut
+   une **précharge / soft-start** (NTC + relais de by-pass, ou alim à démarrage progressif). Rien
+   n'est prévu aujourd'hui — c'est le point le plus susceptible de mordre au premier allumage.
+3. **Distribution 24 V vers 13 modules** — ~25 A à répartir. Topologie (étoile ou bus), section des
+   conducteurs et chute de tension le long du dôme à calculer : 1 V perdu sur le rail, c'est de la
+   puissance en moins en bout de chaîne.
+4. **Protection** — fusible par module ou par branche. Un ampli en court-circuit ne doit pas
+   emporter les 25 voies.
+5. **Rail 3,3 V logique** — pris sur le XIAO pour le proto (le buck XL1509 du design de référence a
+   été sauté, voir `proto-ampli-tas5825m.md` §2). Le système final a besoin d'une vraie source.
+6. **Aucune référence d'alimentation retenue** — seulement l'ordre de grandeur 500-600 W / 24 V.
+
 ## 9. Coût indicatif (numérique + ampli, hors alim/HP)
 
 | Poste | ~Prix | Total |
