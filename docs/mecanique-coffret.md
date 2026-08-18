@@ -114,10 +114,30 @@ cette confusion impossible, et il verrouille au quart de tour.
 
 ## 5. Refroidissement
 
-✅ **Décidé** : **ventilation forcée**, flux **avant-arrière**, parallèle aux faces des cartes.
+✅ **Décidé** : **ventilation forcée en push-pull**, flux **avant-arrière**, parallèle aux faces des
+cartes. **2 soufflants de 120 mm en façade + 1 extracteur de 120 mm en face arrière.**
 
-Les cartes debout créent naturellement des canaux d'air. **Le pas de 20 mm est contraint par ça** —
-resserrer à 15 mm pour gagner de la place étranglerait les canaux.
+⚠️ **La direction du flux n'est pas un choix.** Les cartes debout créent des canaux orientés
+avant-arrière (espacées en largeur, leur longueur suivant la profondeur). Un flux latéral buterait
+perpendiculairement sur leur tranche et les contournerait au lieu de les traverser. **Le pas de
+20 mm est contraint par la même logique** — resserrer à 15 mm étranglerait les canaux.
+
+**Pourquoi push-pull et pas seulement des soufflants** : les canaux ne font que ~8 mm, c'est un
+chemin restrictif. Souffler à l'avant *et* extraire à l'arrière double le différentiel de pression
+disponible. Sur un chemin dégagé la différence serait marginale ; ici elle compte.
+
+**Garder plus de débit entrant que sortant** (2 contre 1) maintient le coffret en **surpression** :
+l'air n'entre que par les ventilateurs, donc un filtre sert réellement à quelque chose. En
+dépression, la poussière entre par tous les interstices et aucun filtre ne la retient.
+
+**Implantation du panneau arrière** : le bloc Speakon est décalé sur la gauche (238 mm) pour libérer
+la droite à l'extracteur (120 mm) — total 378 mm sur 450 utiles. Centrer les Speakon ne laisserait
+que 106 mm de chaque côté, insuffisant pour un 120 mm.
+
+**Débit nécessaire : faible.** Charge thermique ~75 W (13 puces à ~5 W dissipés + pertes de l'alim).
+Pour 10 °C d'élévation il faut de l'ordre de **13 CFM** — un seul 120 mm y suffirait presque à
+basse vitesse. Avec trois, la marge est telle qu'ils peuvent **tous tourner très lentement**. C'est
+là que se gagne le silence : par la vitesse, pas par le nombre.
 
 **Ce que la ventilation rend** : le budget thermique passe d'environ **27 W à ~40 W continus par
 puce** (le θJA baisse quand l'air balaie le cuivre, et l'ambiant interne reste proche de la pièce au
@@ -130,8 +150,8 @@ régule en continu au lieu de réagir à une alerte.
 
 L'alimentation est placée **en aval du flux**, pour ne pas préchauffer les amplis.
 
-❌ **Ouvert** : débit nécessaire (à calculer), nombre de ventilateurs, filtre à l'entrée ou non
-(un filtre ajoute de la restriction et de la maintenance).
+❌ **Ouvert** : référence des ventilateurs et courbe pression/débit (les 8 mm de canal imposent de
+regarder la pression statique, pas seulement le débit libre), filtre à l'entrée ou non.
 
 ## 6. Alimentation
 

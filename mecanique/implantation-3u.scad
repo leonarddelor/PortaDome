@@ -67,7 +67,9 @@ alim_haut       = 31;
 
 vent_dia        = 120;
 vent_ep         = 25;
-vent_nb         = 2;
+vent_nb         = 2;      // soufflants en facade
+vent_arr_nb     = 1;      // extracteurs en face arriere (push-pull)
+vent_arr_dia    = 120;
 
 
 /* [Speakon NL4 — face arriere] */
@@ -79,6 +81,8 @@ spk_pas         = 34;    // <<< A CONFIRMER SUR DXF NEUTRIK
 spk_nb          = 13;
 spk_rangees     = 2;
 spk_ecart_rang  = 45;
+// Decale sur la gauche pour liberer la place de l'extracteur a droite.
+spk_marge_g     = 20;
 
 
 /* [Affichage] */
@@ -187,11 +191,18 @@ module panneau_arriere() {
             for (r = [0 : spk_rangees - 1])
                 for (i = [0 : spk_par_rang - 1])
                     if (r * spk_par_rang + i < spk_nb)
-                        translate([(rack_larg_utile - spk_larg) / 2 + spk_pas/2 + i * spk_pas,
+                        translate([spk_marge_g + spk_pas/2 + i * spk_pas,
                                    -1,
                                    rack_h_utile/2 - (spk_rangees-1)*spk_ecart_rang/2 + r * spk_ecart_rang])
                             rotate([-90, 0, 0])
                                 cylinder(d = spk_cutout, h = tole + 2, $fn = 32);
+
+            // decoupe du ou des extracteurs, a droite du bloc Speakon
+            for (v = [0 : vent_arr_nb - 1])
+                translate([rack_larg_utile - (vent_arr_nb - v) * vent_arr_dia + vent_arr_dia/2 - 10,
+                           -1, rack_h_utile/2])
+                    rotate([-90, 0, 0])
+                        cylinder(d = vent_arr_dia - 8, h = tole + 2, $fn = 48);
         }
 }
 
@@ -247,6 +258,13 @@ if (montrer_vent)
 if (montrer_panneau)
     translate([0, rack_prof, 0]) panneau_arriere();
 
+// extracteurs en face arriere (push-pull)
+if (montrer_vent)
+    for (v = [0 : vent_arr_nb - 1])
+        translate([rack_larg_utile - (vent_arr_nb - v) * vent_arr_dia + vent_arr_dia/2 - 10,
+                   rack_prof - vent_ep, rack_h_utile / 2])
+            ventilateur();
+
 
 // =============================================================================
 // Verifications — lire la console apres F5
@@ -282,6 +300,12 @@ echo(str("PANNEAU  ", spk_nb, " Speakon en ", spk_rangees, " rangees de ", spk_p
          " -> ", spk_larg, " / ", rack_larg_utile, " mm  ",
          spk_larg <= rack_larg_utile ? "OK" : "### DEPASSE ###",
          "   (pas ", spk_pas, " mm A CONFIRMER SUR DXF NEUTRIK)"));
+
+// --- panneau arriere : Speakon + extracteur ---
+pan_utilise = spk_marge_g + spk_larg + vent_arr_nb * vent_arr_dia;
+echo(str("PANNEAU AR  Speakon ", spk_larg, " + extracteur ", vent_arr_nb * vent_arr_dia,
+         " = ", pan_utilise, " / ", rack_larg_utile, " mm  ",
+         pan_utilise <= rack_larg_utile ? "OK" : "### DEPASSE ###"));
 
 // --- ventilation ---
 echo(str("VENTILO  ", vent_nb, " x ", vent_dia, " mm -> ", vent_larg, " mm de facade  ",
