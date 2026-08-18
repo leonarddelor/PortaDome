@@ -8,6 +8,35 @@
 > **Schéma final (validé) : [`TAS5825M_BOARD.pdf`](./TAS5825M_BOARD.pdf)** — export EasyEDA, relu et
 > corrigé au fil de l'eau (voir §7 pour l'historique des points corrigés).
 
+## 0. État au 2026-08-18 (point de reprise)
+
+**Où on en est** : schéma validé, PCB routé, gerbers exportés et relus. La carte n'est **pas encore
+commandée**.
+
+Ce qui est vérifié sur les gerbers du 2026-08-18, pas seulement dans l'éditeur :
+
+- 4 trous M3 Ø 3,30 mm, entraxe **45 × 51 mm**, rectangle exact, outil de perçage unique
+- 381 vias de couture GND (pas ~2 mm), plans de masse sur les deux couches
+- Pad 33 de U1 relié à GND, matrice de 16 vias thermiques connectée au plan
+- DRC propre, alerte netlist résolue
+- Carte : **54,610 × 60,325 mm**
+
+**Ce qui bloque la commande** (par ordre de priorité) :
+
+1. **3 composants sans référence LCSC** — 10 kΩ 0603 (R3-R6), 4,7 kΩ 0603 (R7), 1 µF 0603 (C19).
+   Voir le tableau §3.
+2. **Incohérences valeur ↔ référence dans la BOM exportée** — la référence du 470 nF a été recopiée
+   sur des lignes déclarées 100 nF et 680 nF. Voir §3.
+3. **U2 à basculer** de `C144398` (rupture) vers `C161874` (en stock) — vérifier le dessin mécanique
+   avant, le suffixe `AM` change le moulage.
+4. **Statut Basic/Extended à vérifier** sur [jlcpcb.com/parts](https://jlcpcb.com/parts) — le devis
+   porte 28 $ de frais « Extended Components », réductibles en choisissant des pièces Basic.
+
+**Point mineur, non bloquant** : deux filaments de cuivre GND de 57 et 86 µm subsistent près de U1
+(sous le minimum de gravure de 0,127 mm), à côté des liaisons manuelles vers les pins 25/26/31.
+Correctif connu : passer le clearance de la zone du dessus de 0,254 à 0,30 mm, puis rebuild.
+Sans conséquence fonctionnelle — au pire une question DFM de JLCPCB.
+
 ## 1. Pourquoi ce proto (rappel de la démarche)
 
 - Le module TAS5825M "du commerce" (~8 $/pièce, ~13 modules) supposé dans la spec §6/§9 n'a **pas
@@ -79,6 +108,55 @@ est réactivé, c'est le premier point à instruire.
 ## 3. Nomenclature (BOM) — carte mono-puce
 
 Repris du bloc "DAC" du schéma Esparagus (`Louder Esparagus (DUAL POWER)`, feuille 1/3).
+
+### Références LCSC — vérifiées le 2026-08-18
+
+Chaque ligne a été relue sur sa fiche LCSC. **C'est ce tableau qui fait foi**, pas les sous-sections
+ci-dessous, qui portent encore d'anciens repères (C29/C30/C40/C41, L7, C44-C48) hérités du schéma
+Esparagus et non renumérotés.
+
+| Valeur | Repères | LCSC | Référence fabricant | Stock |
+|---|---|---|---|---|
+| TAS5825MRHBR | U1 | `C471049` | TI | ✅ 937 |
+| 470 nF 0805 50V X7R | C3, C5, C7, C17 | `C335536` | Walsin `0805B474K500CT` | ✅ 6 860 |
+| 680 nF 0805 50V X7R | C2, C4, C6, C8 | `C2859297` | Walsin `0805B684K500CT` | ✅ 7 480 |
+| 100 nF 0805 50V X7R | C1, C11, C16 | `C83055` | Walsin `0805B104K500CT` | ✅ 199 240 |
+| 390 µF 35V SMD | C9, C14 | `C359223` | SAMYOUNG | ✅ 940 |
+| 22 µF 50V traversant | C10, C12, C13, C15, C18, C20, C21 | `C28057` | Chengx | ✅ 10 350 |
+| 10 µH SMD 7,3×6,6 | L1-L4 | `C280584` | Chilisin `MHCI06024-100M-R8A` | ✅ 545 |
+| 1 kΩ 0603 1% | R1 | `C21190` | Uniroyal `0603WAF1001T5E` | ✅ 8,1 M |
+| 15 kΩ 0603 1% | R2 | `C22809` | Uniroyal `0603WAF1502T5E` | ✅ 3,8 M |
+| 100 kΩ 0603 1% | R9 | `C25803` | Uniroyal `0603WAF1003T5E` | ✅ 13,2 M |
+| 0 Ω 0603 | R8 | `C21189` | Uniroyal `0603WAF0000T5E` | ✅ 16,0 M |
+| MM1Z15 zener 15V | D1 | `C115219` | Jingdao | ✅ 4 450 |
+| AO4407A P-MOS | Q1 | `C16072` | AOS | ✅ 22 665 |
+| Bornier 4P 5,08 | CN1 | `C2827883` | DORABO | ✅ 26 465 |
+| Bornier 2P 5,08 | U3 | `C395868` | DORABO | ✅ 51 530 |
+| JST XH 7P | U2 | `C161874` | JST `B7B-XH-AM(LF)(SN)` | ✅ 535 |
+
+**À trouver avant de commander :**
+
+| Valeur | Repères | Situation |
+|---|---|---|
+| 10 kΩ 0603 | R3, R4, R5, R6 | `C25804` en rupture — équivalent à choisir |
+| 4,7 kΩ 0603 | R7 | `C23162` en rupture — équivalent à choisir |
+| 1 µF 0603 | C19 | Aucune référence ni fabricant dans la BOM |
+
+⚠️ **Trois défauts dans la BOM exportée à corriger au schéma :**
+
+1. **Référence recopiée sur la mauvaise valeur.** Le code EIA `474` vaut 470 nF. Il apparaît sur des
+   lignes déclarées 100 nF (C1, C11, C16 — devrait être `104`) et 680 nF (C2, C4, C6, C8 — devrait
+   être `684`). Les valeurs du schéma sont bonnes ; ce sont les références fabricant qui ont été
+   mélangées.
+2. **C18** est un 22 µF dans la BOM exportée, alors que la sous-section « découplage » ci-dessous
+   l'annonce à 4,7 µF. La BOM vient du schéma : c'est elle qui a raison.
+3. **U2 pointait sur `C144398`** (B7B-XH-**A**, en rupture) et non sur le `C161874` annoncé dans la
+   doc (B7B-XH-**AM**, en stock). Même série, 7 positions, pas de 2,5 mm, même boîtier XHP-7 côté
+   câble — mais comparer les dessins mécaniques avant de basculer, le suffixe `AM` change le
+   moulage du corps.
+
+Note d'assemblage : **10 composants traversants** (7 condensateurs radiaux + les 3 connecteurs).
+JLCPCB les facture en soudure manuelle, séparément du CMS — à vérifier sur le devis.
 
 ### Puce
 
@@ -289,51 +367,61 @@ qui le pilote — il écoute juste un bus TDM + I2C. Deux réutilisations identi
   l'adaptateur QFN si soudure manuelle retenue (précaution, pas un doute réel).
 - [ ] Devis JLCPCB réel une fois le schéma posé (l'estimation §5 est indicative — le prix réel du
   composant est meilleur que prévu : ~2.57 $/pièce via LCSC C471049, contre 5-8 $ estimés).
-- [x] **Pad 33 (pavé exposé) de U1 non relié à GND au schéma** — trouvé le 2026-08-17. La broche
-  existait bien sur le symbole mais était restée en l'air. Conséquence : le pavé sous la puce
-  formait un **îlot de cuivre flottant**, le plan de masse le contournait au lieu d'y entrer, et les
-  16 vias thermiques descendaient vers un second îlot flottant en dessous. Double effet — thermique
-  (la chaleur ne pouvait s'évacuer que dans deux petites plaques isolées au lieu du plan entier) et
-  électromagnétique (une surface flottante sous la puce, à côté des nœuds de commutation).
-  **Ni la DRC ni le rendu 2D ne signalent ce défaut** : un via ou un pad sans net n'est pas une
-  violation de règle, juste du cuivre inutile. Corrigé en câblant la broche 33 à GND au schéma, puis
-  `Update to PCB`. Vérification qui fait foi : le cuivre du dessous **touche** les vias au lieu de
-  faire des arcs de contournement autour d'elles.
-- [x] **Placement + routage PCB refaits** (2026-08-17), après relecture du rendu 2D :
-  - **Selfs rapprochées et appairées.** Avant : L2/L3 à ~8 mm de U1, L1/L4 dans les coins hauts à
-    ~25 mm — soit une self près et une self loin **dans chaque voie**. Comme chaque voie est un pont
-    (OUT+/OUT−), les deux moitiés n'étaient pas appariées et leurs champs ne s'annulaient pas. Après :
-    les quatre entre ~13 et ~18 mm, appairées par voie. Ce qui compte ici est la **symétrie dans une
-    paire** plus que la distance absolue ; les condensateurs de découplage gardent la priorité sur
-    les selfs pour la place la plus proche de la puce.
-  - **4ᵉ trou de vis ajouté en bas à droite**, à côté de U3. Le bornier à vis PVDD est le seul
-    composant qui reçoive un **couple appliqué à la main**, et il était sur le porte-à-faux : la
-    carte fléchissait à chaque serrage, et ce sont les joints de brasure du QFN qui payent. U3 a été
-    décalé vers la gauche pour dégager le coin.
-  - **Plans de masse sur les deux couches + couture de vias GND** (grille 5 mm, resserrée à 2,5 mm
-    autour de U1, le long des pistes OUT et sur le pourtour de la carte). Posée avec l'outil
-    **Suture Via** d'EasyEDA Pro, qui assigne le net lui-même — c'est ce qui évite de retomber dans
-    l'alerte de netlist ci-dessous.
-  - **DRC propre, 0 erreur**, alerte netlist comprise.
-- [x] **Alerte "schematic/PCB netlist mismatch" résolue** — elle venait bien de nets assignés à la
-  main sur des vias directement dans le PCB, comme supposé en juillet. `Import Changes` la fait
-  disparaître mais **efface du même coup les nets des vias** : c'est un aller-retour, pas une
-  correction. La sortie de boucle est d'utiliser l'outil Suture Via plutôt que d'étiqueter des vias
-  à la main. ⚠️ **Règle d'ordre** qui découle de tout ça : tout ce qui n'existe que dans le PCB
-  (nets de vias, couture, régions de cuivre) se fait **en dernier**, après le dernier import depuis
-  le schéma. Sinon on le perd et on recommence.
-  Solution définitive pour le banc ×4 : mettre les 16 vias thermiques **dans l'empreinte** de U1,
-  où elles héritent du net du pavé et où aucun import ne peut les effacer.
-- [ ] **Motif des trous de vis à coter** — 4 trous M3 (perçage 3,2 mm, dégagement 6,5 mm sans cuivre
-  ni composant). Les cotes exactes depuis un coin de carte sont à relever et à noter ici : la
-  mécanique du dôme doit pouvoir les lire **sans ouvrir le PCB**. Carte : 54,6 × 60,3 mm.
+- [x] **Pad 33 (pavé exposé de U1) non relié à GND au schéma** — corrigé le 2026-08-17. La broche
+  existait sur le symbole mais était restée en l'air : le pavé formait un **îlot de cuivre
+  flottant**, le plan le contournait, et les 16 vias thermiques descendaient vers un second îlot
+  isolé. Pénalisant en thermique (dissipation limitée à deux petites plaques au lieu du plan) et en
+  EM (surface flottante sous la puce, à côté des nœuds de commutation).
+  ⚠️ **Ni la DRC ni le rendu 2D ne signalent ce défaut** — un pad ou un via sans net n'est pas une
+  violation de règle. **Test qui fait foi** : le cuivre du dessous doit *toucher* les vias, pas
+  faire des arcs de contournement autour.
+- [x] **Placement + routage refaits** (2026-08-17) :
+  - **Selfs appairées par voie.** Chaque voie est un pont (OUT+/OUT−) : deux moitiés dissymétriques
+    empêchent les champs de s'annuler. Avant, chaque voie avait une self à ~8 mm et l'autre à
+    ~25 mm ; après, les quatre sont entre 13 et 18 mm. La **symétrie dans la paire** compte plus que
+    la distance absolue, et le découplage garde la priorité sur les selfs pour la place la plus
+    proche de la puce.
+  - **4ᵉ trou de vis près de U3** — le bornier PVDD est le seul composant à recevoir un couple
+    appliqué à la main, et il était sur le porte-à-faux. Ce sont les joints du QFN qui paient.
+  - **Plans de masse sur les deux couches + 381 vias de couture GND** (pas ~2 mm, resserré autour de
+    U1 et le long des pistes OUT), posées avec l'outil **Suture Via**.
+- [x] **Alerte "netlist mismatch" résolue** — elle venait de nets assignés à la main sur des vias.
+  `Import Changes` la supprime mais **efface du même coup les nets des vias** : c'est un
+  aller-retour, pas une correction. La sortie de boucle est l'outil **Suture Via**, qui assigne le
+  net lui-même.
+  ⚠️ **Règle d'ordre** : tout ce qui n'existe que dans le PCB (nets de vias, couture, régions de
+  cuivre) se fait **en dernier**, après le dernier import depuis le schéma.
+  Pour le banc ×4 : mettre les vias thermiques **dans l'empreinte** de U1, où elles héritent du net
+  du pavé et où aucun import ne peut les effacer.
+- [x] **Motif des trous de vis** — relevé sur les gerbers du 2026-08-18 (`Drill_NPTH_Through.DRL`),
+  valeurs mesurées et non visées. Carte : **54,610 × 60,325 mm**.
+
+  > **Cote à retenir pour la mécanique du dôme : 4 trous M3, entraxe 45 × 51 mm, centrés sur la
+  > carte.** C'est la seule ligne dont le support a besoin — elle doit pouvoir être lue sans ouvrir
+  > le PCB.
+
+  Coordonnées depuis le coin **bas-gauche** de la carte :
 
   | Trou | X (mm) | Y (mm) |
   |---|---|---|
-  | haut-gauche | _à relever_ | _à relever_ |
-  | haut-droite | _à relever_ | _à relever_ |
-  | bas-gauche | _à relever_ | _à relever_ |
-  | bas-droite (près de U3) | _à relever_ | _à relever_ |
+  | haut-gauche | 4,805 | 55,662 |
+  | haut-droite | 49,805 | 55,662 |
+  | bas-gauche | 4,805 | 4,662 |
+  | bas-droite (près de U3) | 49,805 | 4,662 |
+
+  Marges au bord : 4,805 mm à gauche/droite, 4,66 mm en haut/bas. Dégagement de tête : 6,5 mm sans
+  cuivre ni composant. Perçage **Ø 3,30 mm, outil unique** (`T01C3.30000`).
+
+  ⚠️ Le champ de diamètre d'EasyEDA Pro est un **rayon** : saisir `1,65` pour obtenir Ø 3,30.
+
+  Deux erreurs corrigées le 2026-08-18, à ne pas refaire au banc ×4 : les quatre trous avaient
+  **quatre diamètres différents dont un à 2,451 mm** (un M2,5 parmi trois M3 — aucune vis M3 n'y
+  serait passée), et des positions non rectangulaires, décalées jusqu'à 1,016 mm (= 40 mil : trous
+  accrochés à une grille impériale à des endroits différents). Une M3 dans un trou de Ø 3,30 n'a que
+  **0,15 mm de jeu radial**, donc 1 mm d'écart suffit à empêcher les vis d'entrer dans une platine
+  percée sur un rectangle régulier — ce qui compte quand la carte sera répliquée 13 fois.
+  **Méthode : coter les trous au clavier, jamais à la souris, et relire les valeurs dans le fichier
+  de perçage exporté plutôt que dans l'éditeur.**
 
 ## 8. Plan de test
 
