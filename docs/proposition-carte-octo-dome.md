@@ -158,9 +158,62 @@ porte donc un **buck 24 V → 3,3 V pour ses 4 cartes ampli**, et le MCU ne four
 **Cible MCU** : **Teensy 3.6** pour le banc ×4 (déjà en possession), **Teensy 4.1** pour le système
 final.
 
-⚠️ **À vérifier pour la carte du sub** : en PBTL les deux demi-ponts se mettent en parallèle, donc
-le courant dans la self double. Les selfs actuelles sont données à 4 A Isat — c'est le seul endroit
-où le dimensionnement actuel pourrait être juste.
+**Carte sub : identique aux autres, un strap suffit.** Le datasheet documente le mode (Figure 10-8,
+« Sub-woofer (PBTL) Application Schematic »). Même schéma, même BOM, même empreinte — un pont fermé
+et un réglage de registre. Deux points à respecter :
+
+- **Mettre les sorties en parallèle APRÈS les selfs, pas aux broches de la puce.** TI paralléllise
+  aux broches et n'utilise plus que 2 selfs, chacune portant tout le courant. En paralléllisant
+  après, les 4 selfs restent en circuit, deux en parallèle de chaque côté, et **chacune ne porte que
+  la moitié du courant** — réserve de courant doublée avec les composants déjà présents. C'est ce
+  choix qui rend le strap viable, et **il se décide au routage**.
+- **PBTL est aussi un réglage I2C** (mode MONO par registre). Le strap câble le cuivre, le firmware
+  doit faire le reste. La carte sub occupant un slot connu sur la carte MCU, le firmware le sait par
+  sa position — pas de détection automatique à prévoir.
+
+⚠️ **Selfs sous-spécifiées.** TI demande **4,4 A** (Table 10-2, `1274AS-H-100M`). La Chilisin
+`C280584` retenue est donnée 3,1 A nominal / 4 A Isat — déjà juste en BTL. En PBTL sur 4 Ω le
+courant atteint ~4,25 A : acceptable si la mise en parallèle se fait après les selfs, hors spec si
+elle se fait avant. À revoir dans la refonte.
+
+**Puissance réelle par voie : ~30 W.** Figure 10-2 (*Output Power vs PVDD*, 8 Ω, BTL) : à 24 V, ~30 W
+à 1 % de THD et ~40 W à 10 %. C'est **30 W** qu'il faut retenir pour le budget d'alimentation, pas
+les ~38 W du maximum absolu.
+
+### Carte ampli définitive — cahier des charges (2026-08-18)
+
+Le proto mono-puce **ne sera pas commandé** (voir `proto-ampli-tas5825m.md` §0) : le projet a de
+l'avance et la refonte change trop de choses pour qu'une carte intermédiaire serve. Ce qui suit est
+ce que la carte définitive doit porter.
+
+1. **4 couches**, plan GND continu en couche 2. Trois raisons qui convergent : TI ne caractérise pas
+   le 2 couches thermiquement (§7.4, N/A) ; 16 broches de connecteur au lieu de 7 rendent le routage
+   2 couches très contraint ; et un plan continu donne d'emblée ce que 381 vias de couture
+   approximaient sur le proto. L'écart de coût chez JLCPCB est de quelques dollars en petite série.
+2. **Connecteur signal 2×8 (2,54 mm)** — voir le brochage ci-dessus, GND intercalé sur les trois
+   signaux rapides.
+3. **PDN routé au connecteur**, pull-up 10 k conservé (garantit « ampli actif » sans maître).
+4. **FAULTZ / WARNZ routés au connecteur**, pull-ups conservés (sorties open-drain), câblés en OU sur
+   la carte mère. ⚠️ Ce sont des **GPIO configurables** (registres 0x60h-0x63h) : l'init I2C doit
+   leur assigner la fonction.
+5. **ADR au connecteur**, résistances de sélection non peuplées par défaut + pont de soudure.
+6. **Vias thermiques dans l'empreinte de U1** — met fin à la boucle « nets de vias effacés par
+   l'import » subie sur le proto.
+7. **Condensateurs PVDD 22 µF en CMS 0805**, comme TI les spécifie (Table 10-2), au lieu des
+   traversants actuels. Gain triple : plus de surcoût de soudure manuelle chez JLCPCB, moins
+   d'inductance parasite sur PVDD, et de la place gagnée. Ce sont 7 des 10 composants traversants
+   de la carte.
+8. **Selfs à requalifier** (voir ci-dessus).
+
+**Décisions à prendre avant de router** — elles engagent la mécanique autant que l'électronique :
+
+- **Par où entre PVDD ?** ~3,4 A par carte : une broche 2,54 mm est juste, il en faudrait 2-3 en
+  parallèle. Un **second connecteur dédié à la puissance** est la solution propre, et isole le bruit.
+- **Par où sortent les haut-parleurs ?** Bornier sur la carte ampli, ou renvoi vers la carte mère.
+- **La carte garde-t-elle ses dimensions ?** L'entraxe 45 × 51 mm figé sur le proto ne vaut que si
+  la carte garde 54,6 × 60,3 mm.
+- **Sub en 4 Ω ou 8 Ω ?** Le PBTL ne sert qu'en dessous de 4 Ω. En 8 Ω, ne pas bridger et garder la
+  seconde voie libre.
 
 ## 8. Alimentation et thermique (cible 20-40 W/voie)
 

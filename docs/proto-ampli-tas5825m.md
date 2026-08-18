@@ -10,8 +10,14 @@
 
 ## 0. État au 2026-08-18 (point de reprise)
 
-**Où on en est** : schéma validé, PCB routé, gerbers exportés et relus. La carte n'est **pas encore
-commandée**.
+> ⚠️ **Décision du 2026-08-18 : cette carte ne sera pas commandée.** Le travail passe directement à
+> la carte définitive (spec §7, « Architecture retenue pour le banc ×4 »). Motif : le projet a de
+> l'avance, et une carte qui serait remplacée aussitôt coûte ~102 $ et trois semaines d'attente pour
+> valider ce que la refonte change de toute façon. Le contenu ci-dessous **reste la référence** :
+> schéma relu, valeurs vérifiées au datasheet, et surtout les défauts trouvés — ils ne doivent pas
+> être refaits sur la carte définitive.
+
+**Où on en est** : schéma validé, PCB routé, gerbers exportés et relus, **non commandé**.
 
 Ce qui est vérifié sur les gerbers du 2026-08-18, pas seulement dans l'éditeur :
 
@@ -21,16 +27,17 @@ Ce qui est vérifié sur les gerbers du 2026-08-18, pas seulement dans l'éditeu
 - DRC propre, alerte netlist résolue
 - Carte : **54,610 × 60,325 mm**
 
-**Ce qui bloque la commande** (par ordre de priorité) :
+**Ce qui restait à régler, et reste valable pour la carte définitive** :
 
 1. **3 composants sans référence LCSC** — 10 kΩ 0603 (R3-R6), 4,7 kΩ 0603 (R7), 1 µF 0603 (C19).
    Voir le tableau §3.
 2. **Incohérences valeur ↔ référence dans la BOM exportée** — la référence du 470 nF a été recopiée
-   sur des lignes déclarées 100 nF et 680 nF. Voir §3.
-3. **U2 à basculer** de `C144398` (rupture) vers `C161874` (en stock) — vérifier le dessin mécanique
-   avant, le suffixe `AM` change le moulage.
+   sur des lignes déclarées 100 nF et 680 nF. Voir §3. **À corriger au schéma**, elle se propagerait
+   sinon à la carte définitive.
+3. **U2 à basculer** de `C144398` (rupture) vers `C161874` (en stock) — sans objet si le connecteur
+   passe en 2×8 comme prévu en spec §7.
 4. **Statut Basic/Extended à vérifier** sur [jlcpcb.com/parts](https://jlcpcb.com/parts) — le devis
-   porte 28 $ de frais « Extended Components », réductibles en choisissant des pièces Basic.
+   portait 28 $ de frais « Extended Components », réductibles en choisissant des pièces Basic.
 
 **Point mineur, non bloquant** : deux filaments de cuivre GND de 57 et 86 µm subsistent près de U1
 (sous le minimum de gravure de 0,127 mm), à côté des liaisons manuelles vers les pins 25/26/31.
@@ -267,9 +274,12 @@ câble JST-XH 7 broches pré-serti du commerce (format aussi utilisé comme cord
   la chaleur sort par le **dessous** (pavé → vias → cuivre), pas par le dessus : le dessus du boîtier
   est de la résine, un isolant. Un radiateur collé dessus n'apporterait presque rien. Le vrai
   dissipateur, c'est la matrice de 16 vias sous U1 + les plans de masse cousus (voir §7).
-  Ordre de grandeur : un VQFN 5×5 sur 2 couches en 1oz se situe vers 20-30 °C/W, donc les ~7 W/puce
-  annoncés dans la spec §8 **ne sont pas dissipables en continu** — ce chiffre est un cas
-  sinus-pleine-puissance. Sur du programme musical réel (10-20 dB de facteur de crête) on dissipe
+  Chiffres relus au datasheet (§7.4) : R_θJA = **N/A en 2 couches** (TI ne caractérise pas ce cas),
+  **30,0 °C/W en 4 couches**, 24,1 °C/W sur l'EVM 4 couches. Une carte 2 couches est donc **au-delà
+  de 30 °C/W**, et les ~7 W/puce annoncés dans la spec §8 **ne sont pas dissipables en continu** —
+  ce chiffre est un cas sinus-pleine-puissance. (Une première estimation de « 20-30 °C/W en
+  2 couches » circulait dans les notes : elle était trop optimiste, les 30 °C/W sont la valeur
+  4 couches.) C'est un argument de plus pour passer la carte définitive en 4 couches. Sur du programme musical réel (10-20 dB de facteur de crête) on dissipe
   plutôt 1-2 W, ce que la carte encaisse. ⚠️ Conséquence pratique pour le banc : **ne pas laisser
   tourner un sinus à pleine puissance sans surveiller la température** — c'est le seul scénario qui
   cuit la puce, et c'est un scénario d'établi, pas d'usage. Mesurer avant d'acheter quoi que ce soit.
