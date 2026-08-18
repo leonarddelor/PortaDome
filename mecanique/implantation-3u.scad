@@ -7,8 +7,10 @@
 // pas des modeles reels — pour les collisions fines, passer par FreeCAD avec
 // les STEP d'EasyEDA, Mean Well et Neutrik.
 //
-// Les echo() en bas verifient les degagements et affichent VERDICT dans la
-// console. Change une cote, relance (F5), lis la console.
+// UTILISATION : F5 pour l'apercu (F6 = rendu final, inutile ici et lent).
+// Si la vue est vide : View > View All pour recadrer, le modele fait 450 mm.
+// Les echo() en bas verifient les degagements et affichent OK ou DEPASSE
+// dans la console. Change une cote, relance F5, lis la console.
 //
 // Voir docs/mecanique-coffret.md
 // =============================================================================
@@ -117,13 +119,13 @@ vent_larg    = vent_nb * vent_dia;
 // =============================================================================
 
 module carte_ampli() {
-    color("SeaGreen", 0.85)
+    color("SeaGreen")
         cube([carte_ep, carte_long, carte_haut]);
 }
 
 module bloc_mere() {
     // la carte mere elle-meme
-    color("DarkSlateBlue", 0.9)
+    color("DarkSlateBlue")
         translate([0, 0, mere_z])
             cube([mere_larg, mere_prof, mere_ep]);
 
@@ -136,7 +138,7 @@ module bloc_mere() {
                 carte_ampli();
 
     // le volume des connecteurs, pour voir la place qu'ils prennent
-    color("Goldenrod", 0.6)
+    color("Goldenrod")
         for (i = [0 : cartes_par_mere - 1])
             translate([mere_larg_marge + i * carte_pas + (carte_pas - carte_ep) / 2,
                        (mere_prof - carte_long) / 2,
@@ -145,7 +147,7 @@ module bloc_mere() {
 }
 
 module bloc_mcu() {
-    color("DarkSlateBlue", 0.9)
+    color("DarkSlateBlue")
         translate([0, 0, mere_z])
             cube([mcu_larg, mcu_prof, mere_ep]);
 
@@ -155,19 +157,19 @@ module bloc_mcu() {
                    mere_z + mere_ep + connecteur_h])
             carte_ampli();
 
-        color("Firebrick", 0.85)
+        color("Firebrick")
             translate([mcu_larg - 70, 10, mere_z + mere_ep])
                 cube([61, 18, 8]);   // Teensy 4.1
     }
 }
 
 module bloc_alim() {
-    color("Silver", 0.9)
+    color("Silver")
         cube([alim_long, alim_larg, alim_haut]);
 }
 
 module ventilateur() {
-    color("DimGray", 0.7)
+    color("DimGray")
         rotate([-90, 0, 0])
             difference() {
                 translate([-vent_dia/2, -vent_dia/2, 0])
@@ -177,7 +179,7 @@ module ventilateur() {
 }
 
 module panneau_arriere() {
-    color("Gainsboro", 0.5)
+    color("Gainsboro")
         difference() {
             cube([rack_larg_utile, tole, rack_h_utile]);
 
@@ -193,9 +195,22 @@ module panneau_arriere() {
         }
 }
 
-module enveloppe_rack() {
-    color("LightSteelBlue", 0.12)
-        cube([rack_larg_utile, rack_prof, rack_h_utile]);
+// Enveloppe en fil de fer : une boite transparente s'affiche tres mal en
+// apercu OpenSCAD (ordre de rendu imprevisible) et masque tout le contenu.
+module enveloppe_rack(e = 3) {
+    L = rack_larg_utile; P = rack_prof; H = rack_h_utile;
+    color("SteelBlue")
+    union() {
+        // 4 montants verticaux
+        for (x = [0, L - e], y = [0, P - e])
+            translate([x, y, 0]) cube([e, e, H]);
+        // 4 traverses en largeur (bas et haut)
+        for (y = [0, P - e], z = [0, H - e])
+            translate([0, y, z]) cube([L, e, e]);
+        // 4 traverses en profondeur (bas et haut)
+        for (x = [0, L - e], z = [0, H - e])
+            translate([x, 0, z]) cube([e, P, e]);
+    }
 }
 
 
