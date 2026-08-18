@@ -81,15 +81,17 @@ résout élégamment : **une carte mère = un segment de mux**, 4 adresses par s
 **TCA9548A** (8 segments) suffit — 3 segments pour les cartes mères, 1 pour le sub, 4 en réserve.
 La spec §7 évoquait « 2 mux, ou regrouper » : le besoin est en fait d'**un seul**.
 
-**Répartition des slots TDM.** 13 cartes × 2 voies = 26 slots, pour 2 ports de 16 slots :
+**Répartition des slots TDM.** 12 cartes × 2 voies + 1 sub en mono (**une seule voie**, pas deux)
+= **25 slots**, pour 2 ports de 16 :
 
 | Port | Contenu | Slots |
 |---|---|---|
 | TDM 1 | Cartes mères 1 et 2 | 16 |
-| TDM 2 | Carte mère 3 + carte MCU (sub) | 10 |
+| TDM 2 | Carte mère 3 + carte MCU (sub) | 9 |
 
-Ça tombe juste, avec 6 slots de réserve sur le port 2. **À vérifier au firmware** : le découpage
-doit correspondre au câblage physique, sinon une carte mère entière écoute les mauvais slots.
+25 slots pour 25 haut-parleurs, avec 7 slots de réserve sur le port 2. **À vérifier au firmware** :
+le découpage doit correspondre au câblage physique, sinon une carte mère entière écoute les mauvais
+slots.
 
 ## 5. Cerveau (MCU)
 
