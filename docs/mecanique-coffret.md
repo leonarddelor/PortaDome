@@ -46,6 +46,14 @@ Coût : encombrement et poids. Secondaire pour une installation fixe.
 choix de l'alimentation UHP (§6) : **62 mm de large au lieu de 124**, ce qui laisse la place à côté
 des ~300 mm des trois cartes mères sans avoir à superposer.
 
+📐 **Modèle paramétrique : [`mecanique/implantation-3u.scad`](../mecanique/implantation-3u.scad)**
+— ouvrir dans OpenSCAD, changer une cote, F5, lire la console. Les `echo()` vérifient largeur,
+hauteur, profondeur, panneau et ventilation, et affichent OK ou DEPASSE.
+
+**Résultat de la première passe (2026-08-18)** : ça rentre, avec 14 mm de marge en largeur, 44 mm en
+hauteur, 98 mm en profondeur. Et surtout — voir §8.3 — **la largeur du rack est consommée par le pas
+× 13 cartes (260 mm), pas par les dimensions de la carte ampli**.
+
 **Outils libres pour cette étude** (choisis le 2026-08-18) :
 - **OpenSCAD** pour l'étude d'encombrement — c'est du code, donc le fichier **vit dans le dépôt, se
   versionne et se diffe** comme le reste de la documentation. Des boîtes paramétriques suffisent à
@@ -163,10 +171,28 @@ Rien de ce qui suit n'est bloquant aujourd'hui, mais tout doit tomber avant de r
    (24 mm) et les vis (M3) sont confirmés ; l'entraxe ne l'est pas.
 2. ~~Cotes exactes de l'alimentation~~ — **fait** : UHP-350-24, 220 × 62 × 31 mm, sans ventilateur.
    À reconfirmer sur la fiche avant achat.
-3. **La carte ampli garde-t-elle 54,6 × 60,3 mm ?** Décision volontairement rouverte : c'est
-   l'implantation mécanique qui doit trancher, pas une préférence a priori. Argument pour garder :
-   en 4 couches, la surface de cuivre **est** le dissipateur, et le thermique est la contrainte
-   qui borne le système.
+3. ~~La carte ampli garde-t-elle 54,6 × 60,3 mm ?~~ — **l'implantation a répondu (2026-08-18)** :
+   **le rack ne contraint ni la longueur ni la hauteur de la carte.**
+
+   | Dimension | Actuelle | Maximum admis par le rack |
+   |---|---|---|
+   | Longueur (profondeur) | 54,6 mm | **152,6 mm** |
+   | Hauteur | 60,3 mm | **~80 mm** (en gardant 25 mm d'air au-dessus) |
+   | Épaisseur | ~12 mm | **bornée par le pas de 20 mm — non négociable** |
+
+   La largeur du rack est consommée par **le pas × 13 cartes = 260 mm**, indépendamment des
+   dimensions de la carte. Conclusion : **la taille de la carte ampli se décide sur des critères
+   électriques et thermiques, plus mécaniques.** L'argument de garder 54,6 × 60,3 (en 4 couches, la
+   surface de cuivre **est** le dissipateur) reste donc le seul en lice — et rien n'interdit
+   d'agrandir si le routage le demande.
+
+   ⚠️ **Nouvelle contrainte découverte** : les deux condensateurs de 390 µF font **10 mm de haut**.
+   Debout sur la carte, avec un PCB de 1,6 mm, l'enveloppe atteint ~12 mm — il ne reste que **8 mm
+   de canal d'air** au pas de 20 mm. Or le pas ne peut pas être élargi : à 25 mm, la largeur totale
+   passe à ~496 mm pour 450 utiles. Trois pistes, à arbitrer : coucher les électrolytiques, prendre
+   du bulk plus plat, ou **déporter la réserve PVDD sur la carte mère** (une par 4 cartes). Cette
+   dernière libérerait beaucoup de place et d'épaisseur, mais éloigne le réservoir de la puce — ce
+   qui dégrade justement la réponse aux transitoires qu'il sert à tenir.
 4. **Maintien mécanique des cartes debout** — glissières ou connecteur seul.
 5. **Débit d'air nécessaire**, nombre et implantation des ventilateurs.
 6. **Dessin du panneau arrière** — 13 Speakon + secteur + USB.
