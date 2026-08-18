@@ -59,6 +59,14 @@ admettant beaucoup plus est de l'argent dépensé pour rien.
   [spec §7](./proposition-carte-octo-dome.md).
 - ⚠️ **Le proto mono-puce ne sera pas commandé** (voir [proto §0](./proto-ampli-tas5825m.md)). On
   passe directement à la carte définitive.
+- ⚠️ **Carte d'adaptation 1 slot à concevoir** — relevé le 2026-08-18. En supprimant CN1 et U3, la
+  carte v2 perd ses deux seuls points de branchement : elle ne peut plus être testée qu'enfichée.
+  Or la carte mère n'existera pas avant des semaines, et les fils Dupont (~1 A) ne supportent ni les
+  3,4 A de PVDD ni les 2,1 A de sortie HP. Il faut donc un petit 2 couches portant les deux embases
+  femelles, un bornier PVDD, un bornier HP, un header signaux vers XIAO ou Teensy 3.6, la résistance
+  ADR et des trous de fixation (~10 $ les 5).
+  **Cette carte est un slot de la carte mère** : la concevoir valide le circuit du slot avant de le
+  répliquer ×4. Voir le plan de travail du [README](../README.md).
 - ⚠️ **Selfs sous-spécifiées** : TI demande 4,4 A, la référence retenue donne 3,1 A nominal.
 
 **Point d'arbitrage restant** : **caisson en 4 Ω ou 8 Ω ?** Le PBTL ne sert qu'en dessous de 4 Ω. En
