@@ -104,8 +104,9 @@ proto), Raspberry Pi, et Teensy 3.6 puis 4.1. Ils n'ont ni le même connecteur n
 | **Support XIAO** | embase femelle 2×7, pas 2,54 mm | le XIAO ESP32-S3 s'y enfiche directement |
 | **Header générique** | 1×10 ou 2×5, pas 2,54 mm, sérigraphié | Raspberry Pi, Teensy, tout le reste — en Dupont |
 
-⚠️ **Un seul hôte à la fois.** Deux hôtes câblés en même temps mettent deux sources d'horloge sur le
-même bus. Rien ne brûle, mais rien ne fonctionne — à écrire sur la sérigraphie.
+⚠️ **Une seule source d'horloge à la fois.** C'est BCLK/LRCLK/SDIN qui ne doivent jamais avoir deux
+émetteurs — pas les autres signaux. En mode nœud de production (§6), un Pi et un ESP32 cohabitent
+très bien : ils se partagent les rôles au lieu de se disputer le bus. À sérigraphier.
 
 ### XIAO ESP32-S3 — enfiché directement
 
@@ -181,7 +182,76 @@ entendre du son. **Ce qu'il ne donne pas** : le TDM multicanal (le pilote est en
 deux voies) ni une horloge propre (diviseur fractionnaire, donc jitter). Bon banc, mauvaise cible —
 mais ce qu'on y valide se transpose tel quel sur la Teensy, même puce et même init.
 
-## 6. Ce qu'elle reste après
+## 6. Trois modes d'emploi
+
+Le support 2×7 change complètement le rôle de la carte selon ce qu'on y met et le firmware qu'on y
+charge.
+
+| Mode | MCU sur la carte | Usage |
+|---|---|---|
+| **Slot passif** | absent | carte mère PortaDome — tout vient du connecteur |
+| **Banc** | XIAO **hôte** | test des cartes, développement firmware |
+| **Nœud de production** | ESP32 **superviseur** | le Pi fait l'audio, l'ESP32 supervise |
+
+### Le mode superviseur, et ce qu'il répare
+
+En production sur Raspberry Pi, l'ESP32 ne fait pas l'audio : il surveille. Répartition des rôles :
+
+| Signal | Piloté par |
+|---|---|
+| BCLK, LRCLK, SDIN | **Pi** — la source audio |
+| SDA, SCL | **ESP32 seul** |
+| PDN | **ESP32** |
+| FAULTZ, WARNZ | **ESP32** |
+
+Le Pi ne touche jamais à l'I2C : s'il veut changer un réglage, il le demande à l'ESP32 par UART ou
+USB. On évite ainsi le multi-maître I2C, fiable en théorie et pénible en pratique.
+
+**Ce que ça répare, concrètement :**
+
+1. **Le piège d'ordonnancement du §5 disparaît.** L'ESP32 surveille l'apparition des horloges — en
+   lisant `CLKDET_STATUS` / `BCK_MON`, ou en observant BCLK — et lance l'init **au bon moment, tout
+   seul**. Plus personne n'a à se souvenir d'ouvrir un flux avant d'initialiser.
+   *(Ce bug a coûté une semaine de recherche en conditions réelles. Il ne doit pas pouvoir revenir.)*
+2. **La mise en veille du Pi devient sûre.** Quand le Pi dort ou redémarre, les horloges s'arrêtent
+   et le TAS5825M se retrouve dans un état indéterminé. Le superviseur détecte la perte, met en HiZ
+   pour éviter le claquement, et ré-initialise au retour — sans que le Pi ait à y penser.
+3. **Le nœud reste diagnosticable même Pi éteint** : présence I2C, `PVDD_ADC`, défauts.
+
+### L'ESP32 peut-il envoyer le son lui-même ?
+
+Oui, et ça pose une question qui vaut d'être tranchée : **si l'ESP32 fait l'audio, le Pi est-il
+encore nécessaire ?**
+
+| Voie | Faisabilité | Remarque |
+|---|---|---|
+| **Fichiers sur carte SD** | ✅ | Le XIAO S3 « Sense » a un lecteur microSD ; le modèle nu n'en a pas |
+| **Flash interne** | ⚠️ | 8 Mo ≈ **45 s** de stéréo 44,1 kHz/16 bits non compressé. Décoder du MP3/AAC allonge beaucoup |
+| **Streaming WiFi** | ✅ | C'est la voie naturelle pour un nœud en réseau. **Snapcast** résout la synchro multi-pièces et des clients ESP32 existent |
+| **USB Audio Class** | ⚠️ | L'S3 a l'USB natif, mais l'UAC sur ESP32-S3 est peu mûr — à éprouver avant de compter dessus |
+| **Bluetooth A2DP** | ❌ | **L'ESP32-S3 n'a pas le Bluetooth Classic**, seulement le BLE. Pas de récepteur A2DP. Il faudrait un ESP32 d'origine |
+
+**Conséquence** : pour un nœud simple — streaming réseau ou lecture de fichiers — **ESP32-S3 + carte
+ampli + carte d'adaptation suffisent, sans Pi**. Le Pi ne se justifie que si l'on a besoin de Linux :
+DSP lourd, vrai système de fichiers, services réseau, vidéo.
+
+⚠️ **Deux réserves.** Le budget de broches du XIAO est serré (11 GPIO : I2S 3 + I2C 2 + PDN/FAULT/
+WARN 3 = 8, il reste peu pour une SD en SPI). Et l'horloge I2S de l'ESP32 sort d'une PLL interne :
+parfait pour un nœud jouant seul, **inadapté à une synchronisation serrée entre nœuds**.
+
+### ⚠️ Cette architecture est l'inverse de PortaDome — délibérément
+
+PortaDome **interdit toute intelligence locale** : un seul cerveau, un seul domaine d'horloge, parce
+que la cohérence de phase à ~100 µs entre haut-parleurs voisins l'exige.
+
+Un réseau de nœuds ESP32 avec redondance mesh est exactement l'opposé : autonomie locale, tolérance
+aux pannes, synchronisation lâche.
+
+**Les deux sont justes pour leur problème.** Il ne faut jamais laisser croire que l'une pourrait
+servir à l'autre : un mesh ne tiendra jamais la synchro d'un dôme, et le dôme n'a que faire de la
+tolérance aux pannes d'un nœud isolé.
+
+## 7. Ce qu'elle reste après
 
 Elle ne se jette pas une fois la carte mère faite. Sur un projet d'un an avec 13 cartes :
 
@@ -190,7 +260,7 @@ Elle ne se jette pas une fois la carte mère faite. Sur un projet d'un an avec 1
 - **Le poste de mise en service** — chaque carte neuve y passe avant d'être montée : présence I2C,
   clocks détectées, PVDD correct, un canal à la fois.
 
-## 7. Position de repli
+## 8. Position de repli
 
 Si l'objection « pourquoi ne pas simplement garder les borniers sur la carte ampli » l'emporte, il
 existe une solution honnête : **garder CN1 et U3 sur la première série de cartes v2**, et ne
@@ -203,11 +273,13 @@ validation du slot avant réplication. Ce n'est pas absurde — c'est simplement
 consiste maintenant à payer 9 % de surface sur treize cartes, définitivement, pour éviter de
 concevoir une carte à 2 $ dont on a besoin de toute façon pour l'usage hors dôme.
 
-## 8. À faire
+## 9. À faire
 
 - [ ] Figer le brochage des deux connecteurs (dépend du routage de la carte ampli v2)
 - [ ] Prévoir l'empreinte de buck 24 V → 3,3 V, non peuplée par défaut
 - [ ] Vérifier D8/D9/D10 du XIAO contre le pinout officiel Seeed
+- [ ] Trancher XIAO S3 nu ou « Sense » (lecteur microSD) selon le mode visé
+- [ ] Éprouver la maturité de l'USB Audio Class sur ESP32-S3 si cette voie est retenue
 - [ ] Schéma
 - [ ] Routage 2 couches
 - [ ] Commander **avec** les cartes ampli v2, même lot
