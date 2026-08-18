@@ -76,6 +76,13 @@ dans la carte mère.
 | Signaux vers MCU | header 2,54 mm simple rangée | fils Dupont vers XIAO S3 ou Teensy 3.6 |
 | Adresse I2C | résistance ADR + pont de soudure | valide le mécanisme d'adressage par slot |
 | Maintien mécanique | 4 trous M3 | la carte ampli tient debout sur l'établi |
+| **Sélection de la source 3,3 V** | cavalier | ⚠️ **hôte OU buck local, jamais les deux** — voir ci-dessous |
+
+⚠️ **Le cavalier 3,3 V n'est pas un confort, c'est une sécurité.** Si l'empreinte du buck est peuplée
+*et* que l'hôte fournit son propre 3,3 V par le header, deux régulateurs se retrouvent en opposition
+sur le même rail. Le cavalier rend le choix exclusif et visible. Cas typique : branché sur un
+Raspberry Pi, on préfère le buck local plutôt que de charger le régulateur du Pi — seule la masse
+est alors commune.
 
 **Ajouts propres au banc, à ne jamais mettre dans le rack :**
 

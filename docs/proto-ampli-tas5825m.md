@@ -344,6 +344,11 @@ qui le pilote — il écoute juste un bus TDM + I2C. Deux réutilisations identi
 1. **Banc 8 voies pour PortaDome** : 4× ce bloc sur un même PCB, bus TDM/I2C partagé, chaque puce
    sur sa propre adresse (0x0C-0x0F, 4 adresses dispo nativement, pas besoin de mux I2C à ce stade).
    Testé d'abord au XIAO S3, rebranché plus tard sans modif sur la Teensy (3.6 puis 4.1).
+   ⚙️ **Comment cette promesse est tenue concrètement** : voir
+   [`carte-adaptation.md`](./carte-adaptation.md). En rendant la carte ampli débrochable (suppression
+   de CN1 et U3), on l'a rendue inutilisable seule ; la carte d'adaptation lui rend ses points de
+   branchement — bornier PVDD, bornier haut-parleur, accès aux signaux, adresse I2C — et permet donc
+   l'usage à une seule carte hors du dôme.
 2. **Piste "instrument autonome" (hors PortaDome)**, façon WVR (`~/repo/wvr`, ESP32 + mémoire
    eMMC/PSRAM pour stocker des échantillons) : même bloc DAC, mais intégré sur un board différent
    avec ESP32 + mémoire embarqués (pas le board "bête" de PortaDome). Piste notée pour plus tard,
