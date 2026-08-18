@@ -42,9 +42,19 @@ Coût : encombrement et poids. Secondaire pour une installation fixe.
    └───────────────────────────────────────────────────────────────────┘
 ```
 
-❌ **Ouvert** : l'implantation exacte. 3 cartes mères (~300 mm) + alim (~215 mm) = 515 mm pour
-450 mm utiles : **elles ne tiennent pas sur une seule rangée**. Le 3U permet de superposer, à
-dessiner.
+❌ **Ouvert** : l'implantation exacte, à dessiner. La contrainte s'est nettement desserrée depuis le
+choix de l'alimentation UHP (§6) : **62 mm de large au lieu de 124**, ce qui laisse la place à côté
+des ~300 mm des trois cartes mères sans avoir à superposer.
+
+**Outils libres pour cette étude** (choisis le 2026-08-18) :
+- **OpenSCAD** pour l'étude d'encombrement — c'est du code, donc le fichier **vit dans le dépôt, se
+  versionne et se diffe** comme le reste de la documentation. Des boîtes paramétriques suffisent à
+  répondre à « est-ce que ça rentre ».
+- **FreeCAD** pour l'assemblage réel : EasyEDA Pro exporte le PCB en **STEP**, Mean Well et Neutrik
+  publient également des STEP. On assemble des modèles réels, pas des approximations — c'est là que
+  les collisions apparaissent.
+- **Front Panel Designer** (Schaeffer, gratuit) pour le panneau arrière : il produit un panneau
+  réellement fabricable, avec les vraies cotes des 13 Speakon + secteur + USB.
 
 ## 3. Cartes ampli — format debout
 
@@ -119,12 +129,20 @@ L'alimentation est placée **en aval du flux**, pour ne pas préchauffer les amp
 
 Voir [spec §8](./proposition-carte-octo-dome.md) pour le dimensionnement.
 
-- ✅ **Décidé** : à l'intérieur du rack si la place le permet. Famille **Meanwell LRS**, refroidie
-  par convection donc **sans ventilateur propre** — elle profite du flux du coffret et n'ajoute
-  aucun bruit.
-- **Calibre : 400-450 W en 24 V.** Les 500-600 W de la spec étaient estimés sur ~38 W/voie ; à
-  ~30 W réels et compte tenu du plafond thermique des puces (~325 W de sortie soutenue pour
-  24 voies), 450 W est le bon calibre avec de la marge pour les crêtes.
+- ✅ **Décidé** : à l'intérieur du rack. **Mean Well UHP-350-24** — 350 W, 24 V, 14,6 A,
+  **220 × 62 × 31 mm**, **refroidissement par convection sans ventilateur**, rendement 94 %.
+  (Cotes et absence de ventilateur vérifiées le 2026-08-18 ; à reconfirmer sur la fiche Mean Well
+  avant achat.)
+
+  ⚠️ **La série LRS a été écartée** : contrairement à ce qu'on avait supposé, **elle embarque un
+  ventilateur dès 350 W** (convection seulement jusqu'à 150-200 W). Un ventilateur de 40 mm dans
+  l'alimentation serait la source de bruit la plus aiguë du rack — exactement ce que le choix du 3U
+  cherche à éviter. La UHP est en outre **deux fois moins large** (62 contre 124 mm), ce qui résout
+  la contrainte d'encombrement du §2.
+
+- **Calibre : 350 W suffisent.** Les 500-600 W de la spec étaient estimés sur ~38 W/voie. À ~30 W
+  réels, la consommation moyenne sur programme musical tourne vers ~145 W ; les 10 mF de réserve
+  encaissent les crêtes, et le plafond thermique des puces borne de toute façon le régime soutenu.
 - ⚠️ **Appel de courant** : ~10 mF de réserve cumulée. Solution offerte par la topologie —
   **séquencer les 3 cartes mères** à ~200 ms d'écart, ce qui divise l'appel en trois paquets de
   ~3,3 mF, combiné à une NTC. Le MCU pilote les relais, ce qui donne au passage un démarrage propre
@@ -141,9 +159,10 @@ Voir [spec §8](./proposition-carte-octo-dome.md) pour le dimensionnement.
 
 Rien de ce qui suit n'est bloquant aujourd'hui, mais tout doit tomber avant de router.
 
-1. **Pas minimum entre Speakon NL4** — sur le dessin mécanique Neutrik. Décide si 7 par rangée
-   passent sur 450 mm utiles.
-2. **Cotes exactes de l'alimentation** — sur la fiche Meanwell.
+1. **Largeur de bride et entraxe minimum des Speakon NL4** — dans le DXF/STEP Neutrik. Le cutout
+   (24 mm) et les vis (M3) sont confirmés ; l'entraxe ne l'est pas.
+2. ~~Cotes exactes de l'alimentation~~ — **fait** : UHP-350-24, 220 × 62 × 31 mm, sans ventilateur.
+   À reconfirmer sur la fiche avant achat.
 3. **La carte ampli garde-t-elle 54,6 × 60,3 mm ?** Décision volontairement rouverte : c'est
    l'implantation mécanique qui doit trancher, pas une préférence a priori. Argument pour garder :
    en 4 couches, la surface de cuivre **est** le dissipateur, et le thermique est la contrainte
