@@ -251,7 +251,68 @@ aux pannes, synchronisation lâche.
 servir à l'autre : un mesh ne tiendra jamais la synchro d'un dôme, et le dôme n'a que faire de la
 tolérance aux pannes d'un nœud isolé.
 
-## 7. Ce qu'elle reste après
+## 7. Mécanique : comment tout se tient physiquement
+
+La question se pose ainsi : l'adaptateur doit recevoir la carte ampli **debout**, et se brancher sur
+le connecteur du Pi qui est **à plat**. Deux orientations perpendiculaires sur une même carte.
+
+**La sortie est de ne pas empiler. L'adaptateur n'est pas un HAT.**
+
+```
+     carte ampli (debout, 60 mm)
+            │
+      ┌─────┴──────┐
+      │ adaptateur │  borniers PVDD / HP, support XIAO
+      └─────┬──────┘
+            │  nappe 10 points
+            │
+      ┌─────┴──────┐
+      │ Raspberry  │
+      │     Pi     │
+      └────────────┘
+
+    les deux à plat sur la même platine, côte à côte
+```
+
+Les deux cartes se vissent **côte à côte** sur une platine, reliées par une nappe courte. Plus
+aucune contrainte d'orientation.
+
+### Pourquoi ne pas empiler est meilleur, et pas seulement plus simple
+
+1. **Hauteur** — une carte de 60 mm dressée au-dessus d'un HAT donne un empilement haut et
+   déséquilibré. Côte à côte, tout est stable.
+2. **Chaleur** — la carte ampli dissipe, le Pi 4 dissipe. Les superposer, c'est faire chauffer l'un
+   par l'autre et priver les deux de circulation d'air.
+3. **Bruit** — l'argument décisif. La carte ampli porte du **24 V à 3,4 A commutés vers 400 kHz**.
+   La poser sur le Pi met cette commutation à quelques millimètres de son processeur et de ses
+   horloges. **Les séparer physiquement est électriquement supérieur.**
+
+Une nappe coûte deux euros et règle les trois.
+
+### Le XIAO est l'exception, à cause de sa taille
+
+21 × 17,5 mm — assez petit pour être **enfiché directement sur l'adaptateur**, sans câble ni
+platine. L'ensemble adaptateur + XIAO + carte ampli forme alors un bloc rigide unique qui tient
+debout seul.
+
+C'est la raison pour laquelle le support 2×7 est intégré à la carte alors que le Pi passe par un
+header : **la différence de taille justifie la différence de traitement.**
+
+### Ce que l'adaptateur demande
+
+- **4 trous M3** pour le visser sur une platine ou un fond de boîtier
+- La carte ampli **s'y dresse** — c'est l'adaptateur fixé qui lui donne sa stabilité, pas l'inverse
+- Le **header générique orienté vers l'extérieur**, pour que la nappe sorte sans contorsion
+- Ni glissière ni renfort : une carte de 60 mm sur deux connecteurs 2,54 mm, portée par un
+  adaptateur vissé, tient parfaitement
+
+### Si un jour il faut un produit Pi compact
+
+La bonne réponse ne sera **pas** de plier l'adaptateur en HAT, mais de concevoir un **HAT dédié**
+intégrant le circuit ampli directement. On abandonne alors la carte ampli modulaire : c'est un autre
+produit, pas une variante de celui-ci.
+
+## 8. Ce qu'elle reste après
 
 Elle ne se jette pas une fois la carte mère faite. Sur un projet d'un an avec 13 cartes :
 
@@ -260,7 +321,7 @@ Elle ne se jette pas une fois la carte mère faite. Sur un projet d'un an avec 1
 - **Le poste de mise en service** — chaque carte neuve y passe avant d'être montée : présence I2C,
   clocks détectées, PVDD correct, un canal à la fois.
 
-## 8. Position de repli
+## 9. Position de repli
 
 Si l'objection « pourquoi ne pas simplement garder les borniers sur la carte ampli » l'emporte, il
 existe une solution honnête : **garder CN1 et U3 sur la première série de cartes v2**, et ne
@@ -273,7 +334,7 @@ validation du slot avant réplication. Ce n'est pas absurde — c'est simplement
 consiste maintenant à payer 9 % de surface sur treize cartes, définitivement, pour éviter de
 concevoir une carte à 2 $ dont on a besoin de toute façon pour l'usage hors dôme.
 
-## 9. À faire
+## 10. À faire
 
 - [ ] Figer le brochage des deux connecteurs (dépend du routage de la carte ampli v2)
 - [ ] Prévoir l'empreinte de buck 24 V → 3,3 V, non peuplée par défaut
@@ -282,5 +343,6 @@ concevoir une carte à 2 $ dont on a besoin de toute façon pour l'usage hors d�
 - [ ] Éprouver la maturité de l'USB Audio Class sur ESP32-S3 si cette voie est retenue
 - [ ] Schéma
 - [ ] Routage 2 couches
+- [ ] Orienter le header générique vers l'extérieur du contour (sortie de nappe)
 - [ ] Commander **avec** les cartes ampli v2, même lot
 - [ ] Une fois validée, copier le circuit du slot dans la carte mère
