@@ -118,6 +118,50 @@ dôme restent verrouillées entre elles (le PC n'a aucune influence sur l'aligne
 - *Option v2 (PCB)* : 4× TAS5825M par banc, **filtres LC 10 µH + 470-680 nF**, adressage par broche
   **ADR** (0x4C-0x4F) — cf. §10-11.
 
+### Architecture retenue pour le banc ×4 et le système final (décisions du 2026-08-18)
+
+**Topologie 3+1** : 3 cartes mères recevant chacune 4 cartes ampli (= 24 voies), plus 1 carte MCU
+recevant 1 carte ampli **bridgée en PBTL** pour le caisson de grave. Total **25 voies**. La carte
+mère est donc répliquée 3 fois, au lieu de câbler 13 modules un par un.
+
+**Impédance des haut-parleurs : 8 Ω — figé.** C'est la décision qui commande tout le reste. À
+PVDD 24 V, la sortie en pont donne ~36 W/voie, soit exactement la puissance nominale du TAS5825M.
+En 4 Ω, 24 V dépasserait la limite de courant de la puce et imposerait de descendre le rail vers
+15-18 V. Le rail 24 V et le budget 500-600 W du §8 découlent de ce choix.
+
+**Le 3,3 V vient de la carte mère, pas du MCU.** La carte ampli est un esclave : sans maître
+TDM/I2C elle ne fait rien, donc un maître est toujours présent, et un régulateur par carte ampli
+dupliquerait N fois ce que le système possède déjà — pour une place et un routage coûteux à côté
+d'un étage class-D. **Pas de buck sur la carte ampli.**
+⚠️ Mais pas le régulateur de bord du Teensy ou du XIAO non plus : leur budget est de quelques
+centaines de mA, déjà partagé avec le microcontrôleur. La carte mère distribue déjà le 24 V, elle
+porte donc un **buck 24 V → 3,3 V pour ses 4 cartes ampli**, et le MCU ne fournit que des signaux.
+À dimensionner sur la consommation DVDD du TAS5825M (datasheet) × 4.
+
+**Connecteur à revoir — trois points, tous impactant le routage :**
+
+1. **Masses insuffisantes.** U2 n'a qu'**une seule broche GND** pour cinq signaux, dont une horloge
+   à 5-12 MHz. Alterner signal/GND, soit ~11-12 positions au lieu de 7. Le §4 du doc proto applique
+   déjà ce raisonnement au câblage Dupont ; il vaut autant en carte-à-carte.
+2. **PDN absent — non implémenté aujourd'hui.** Le MCU doit pouvoir remettre les amplis en veille ou
+   les redémarrer sans couper le 24 V : indispensable en debug et pour une séquence de démarrage
+   propre. À remonter sur le connecteur.
+3. **ADR sorti sur le connecteur**, les résistances de sélection restant présentes sur la carte
+   ampli mais **non peuplées par défaut** — ce qui donne les deux usages sans compromis :
+   - **sur carte mère** → le slot impose l'adresse, et toutes les cartes ampli deviennent
+     **identiques et interchangeables** (une carte de rechange se monte à n'importe quelle place) ;
+   - **hors carte mère** → on peuple la résistance sur la carte ampli, elle redevient autonome.
+
+   ⚠️ **Jamais les deux sources à la fois** : les résistances se mettraient en parallèle et
+   donneraient une adresse fausse. Matérialiser le choix par un pont de soudure explicite.
+
+**Cible MCU** : **Teensy 3.6** pour le banc ×4 (déjà en possession), **Teensy 4.1** pour le système
+final.
+
+⚠️ **À vérifier pour la carte du sub** : en PBTL les deux demi-ponts se mettent en parallèle, donc
+le courant dans la self double. Les selfs actuelles sont données à 4 A Isat — c'est le seul endroit
+où le dimensionnement actuel pourrait être juste.
+
 ## 8. Alimentation et thermique (cible 20-40 W/voie)
 
 - **Rail PVDD ~24 V**. Bulk caps proches de chaque TAS5825M.
@@ -132,9 +176,9 @@ dôme restent verrouillées entre elles (le PC n'a aucune influence sur l'aligne
 Ce qui précède est un dimensionnement d'ordre de grandeur. Tout ce qui se trouve **entre l'alim et
 les puces** reste à concevoir :
 
-1. **Impédance des haut-parleurs — non spécifiée.** Elle n'apparaît dans aucun document et aucun
-   modèle de HP n'est choisi. C'est pourtant elle qui fixe la puissance réelle par voie, donc le
-   budget d'alimentation *et* le choix de PVDD. **À trancher en premier** : tout le reste en dépend.
+1. ~~**Impédance des haut-parleurs — non spécifiée.**~~ **Tranché le 2026-08-18 : 8 Ω, figé.** Voir
+   §7. Le rail 24 V et le budget 500-600 W ci-dessus en découlent et sont donc validés. Reste à
+   choisir le **modèle** de haut-parleur (puissance admissible, rendement, encombrement).
 2. **Appel de courant à la mise sous tension.** ~13 modules × 2 × 390 µF ≈ **10 mF** de réserve
    totale. Un SMPS de 600 W part en sécurité ou fait disjoncter sur une capacité pareille. Il faut
    une **précharge / soft-start** (NTC + relais de by-pass, ou alim à démarrage progressif). Rien
@@ -144,8 +188,9 @@ les puces** reste à concevoir :
    puissance en moins en bout de chaîne.
 4. **Protection** — fusible par module ou par branche. Un ampli en court-circuit ne doit pas
    emporter les 25 voies.
-5. **Rail 3,3 V logique** — pris sur le XIAO pour le proto (le buck XL1509 du design de référence a
-   été sauté, voir `proto-ampli-tas5825m.md` §2). Le système final a besoin d'une vraie source.
+5. ~~**Rail 3,3 V logique.**~~ **Tranché le 2026-08-18** : un buck 24 V → 3,3 V **par carte mère**,
+   alimentant ses 4 cartes ampli. Ni sur la carte ampli, ni depuis le régulateur de bord du MCU.
+   Voir §7. Reste à dimensionner sur la consommation DVDD du TAS5825M (datasheet) × 4.
 6. **Aucune référence d'alimentation retenue** — seulement l'ordre de grandeur 500-600 W / 24 V.
 
 ## 9. Coût indicatif (numérique + ampli, hors alim/HP)
