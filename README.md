@@ -50,6 +50,8 @@ Le tout dans un **rack 19" 3U ventilé**, cartes ampli **debout et débrochables
 | [`docs/proposition-carte-octo-dome.md`](docs/proposition-carte-octo-dome.md) | Proposition technique. Le §7 porte le cahier des charges de la carte ampli v2. |
 | [`docs/mecanique-coffret.md`](docs/mecanique-coffret.md) | Rack 3U, cartes debout, ventilation push-pull, connectique. |
 | [`docs/proto-ampli-tas5825m.md`](docs/proto-ampli-tas5825m.md) | Suivi du proto. **Le §7 liste les défauts trouvés** — à ne pas refaire. |
+| [`docs/carte-adaptation.md`](docs/carte-adaptation.md) | Le slot de carte mère construit seul, pour tester les cartes ampli au banc. |
+| [`docs/diagnostic-et-maintenance.md`](docs/diagnostic-et-maintenance.md) | Ce que les puces savent dire d'elles-mêmes, et le client USB de réglage et de dépannage. |
 | [`docs/budget-coffret.html`](docs/budget-coffret.html) | Chiffrage par poste, avec niveau de confiance par ligne. |
 | [`docs/projet-etudiant-feuille-de-route.md`](docs/projet-etudiant-feuille-de-route.md) | Méthode de travail, conventions git, glossaire. |
 | [`mecanique/implantation-3u.scad`](mecanique/implantation-3u.scad) | Étude d'encombrement paramétrique. `F5` dans OpenSCAD, lire la console. |
@@ -86,11 +88,16 @@ signaux vers XIAO ou Teensy 3.6, la résistance ADR et des trous de fixation. ~1
 **Cette carte est un slot de la carte mère.** La concevoir valide le circuit du slot avant de le
 répliquer ×4 — c'est isoler les variables, pas faire un détour.
 
-### C · Firmware — indépendant de tout le matériel
+### C · Firmware et client — indépendants de tout le matériel
 
 Peut démarrer aujourd'hui. Init I2C du TAS5825M à réécrire (le driver Sonocotta cible le TAS5805M),
-configuration des GPIO0/1/2 en `WARNZ`/`FAULTZ` (registres `0x60h`-`0x63h`), I2S stéréo d'abord puis
+configuration des GPIO0/1/2 en `WARNZ`/`FAULTZ` (registres `60h`-`63h`), I2S stéréo d'abord puis
 TDM, répartition des slots conforme à `architecture-systeme.md` §4.
+
+Côté ordinateur, un **client USB** de réglage et de dépannage (voir
+[`diagnostic-et-maintenance.md`](docs/diagnostic-et-maintenance.md)). La Teensy n'est qu'un relais
+I2C : toute l'intelligence est dans le client, ce qui permet d'itérer sur les réglages **sans
+reflasher**.
 
 ### D · Mécanique — après l'export STEP
 
