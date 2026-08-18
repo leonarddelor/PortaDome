@@ -92,7 +92,96 @@ est alors commune.
 - **Connecteur pour analyseur logique** sur le bus I2C — indispensable pour déboguer l'init du
   TAS5825M, qui est à réécrire entièrement.
 
-## 5. Ce qu'elle reste après
+## 5. Brancher un hôte
+
+La carte doit servir trois hôtes différents — XIAO ESP32-S3 (le banc documenté en §4 du document
+proto), Raspberry Pi, et Teensy 3.6 puis 4.1. Ils n'ont ni le même connecteur ni le même brochage.
+
+**La solution : deux points d'accès câblés sur les mêmes nets**, dont un seul est utilisé à la fois.
+
+| Accès | Format | Pour qui |
+|---|---|---|
+| **Support XIAO** | embase femelle 2×7, pas 2,54 mm | le XIAO ESP32-S3 s'y enfiche directement |
+| **Header générique** | 1×10 ou 2×5, pas 2,54 mm, sérigraphié | Raspberry Pi, Teensy, tout le reste — en Dupont |
+
+⚠️ **Un seul hôte à la fois.** Deux hôtes câblés en même temps mettent deux sources d'horloge sur le
+même bus. Rien ne brûle, mais rien ne fonctionne — à écrire sur la sérigraphie.
+
+### XIAO ESP32-S3 — enfiché directement
+
+C'est l'hôte principal du banc, et le seul assez petit pour être porté par la carte d'adaptation.
+Brochage repris du §4 du document proto, déjà vérifié contre le pinout officiel Seeed :
+
+| Signal | Broche XIAO |
+|---|---|
+| BCLK | D0 |
+| LRCLK (WS) | D1 |
+| SDIN (DATA) | D3 |
+| SDA | D4 |
+| SCL | D5 |
+| PDN | **D8** |
+| FAULTZ | **D9** |
+| WARNZ | **D10** |
+
+D2 est évité (broche de strapping), D6 et D7 restent libres pour garder le moniteur série de debug.
+⚠️ Les trois dernières lignes (D8-D10) sont **à vérifier contre le pinout Seeed** avant routage,
+comme l'ont été les cinq premières.
+
+**Un atout de l'ESP32-S3** : ses broches I2S ne sont pas figées, elles se choisissent en firmware
+via la matrice GPIO. Le routage de la carte peut donc privilégier la propreté du tracé, le firmware
+s'adapte — à condition de respecter les broches interdites ci-dessus.
+
+**Source 3,3 V** : cavalier sur « hôte ». Le régulateur du XIAO suffit pour le DVDD d'une seule puce.
+
+### Raspberry Pi — par le header générique
+
+Six signaux plus la masse, vers le connecteur 40 broches :
+
+| Signal | GPIO | Broche Pi | Rôle |
+|---|---|---|---|
+| BCLK | GPIO18 | **12** | `PCM_CLK` |
+| LRCLK | GPIO19 | **35** | `PCM_FS` |
+| SDIN | GPIO21 | **40** | `PCM_DOUT` (sortie du Pi) |
+| SDA | GPIO2 | **3** | `SDA1` |
+| SCL | GPIO3 | **5** | `SCL1` |
+| GND | — | **6, 9, 14, 20, 25, 30, 34, 39** | au moins deux, dont une près des horloges |
+| PDN *(opt.)* | GPIO4 | 7 | |
+| FAULTZ *(opt.)* | GPIO27 | 13 | en entrée |
+| WARNZ *(opt.)* | GPIO22 | 15 | en entrée |
+
+Pi et carte sont tous deux en 3,3 V, aucune adaptation de niveau.
+
+⚠️ **Ne pas relier la broche 1 (3,3 V) du Pi.** Peupler le buck local, cavalier sur « buck », et ne
+partager que la masse — le régulateur du Pi est déjà sollicité.
+
+**Configuration Linux** — dans `/boot/firmware/config.txt` :
+
+```
+dtparam=i2c_arm=on
+dtoverlay=hifiberry-dac
+```
+
+`hifiberry-dac` déclare un **DAC I2S générique sans contrôle I2C** : le noyau se contente de sortir
+de l'I2S en maître d'horloge, et le TAS5825M se configure depuis l'espace utilisateur. Aucun pilote
+ASoC à écrire.
+
+⚠️ **Piège d'ordonnancement.** Le datasheet §9.5.3.1 exige *horloges stables d'abord, init I2C
+ensuite*. Or les horloges du Pi ne tournent que pendant un flux ouvert. La séquence qui marche :
+
+```bash
+aplay -D hw:0 -f S16_LE -r 44100 -c 2 /dev/zero &   # 1. lance les horloges
+python3 init_tas5825m.py                            # 2. init, horloges presentes
+aplay -D hw:0 fichier.wav                           # 3. lecture reelle
+```
+
+Initialiser avant d'ouvrir le flux échoue **silencieusement** — la puce ne voit pas d'horloge.
+
+**Ce que le Pi donne** : deux voies, de quoi valider l'init I2C, lire les registres de diagnostic et
+entendre du son. **Ce qu'il ne donne pas** : le TDM multicanal (le pilote est en pratique limité à
+deux voies) ni une horloge propre (diviseur fractionnaire, donc jitter). Bon banc, mauvaise cible —
+mais ce qu'on y valide se transpose tel quel sur la Teensy, même puce et même init.
+
+## 6. Ce qu'elle reste après
 
 Elle ne se jette pas une fois la carte mère faite. Sur un projet d'un an avec 13 cartes :
 
@@ -101,7 +190,7 @@ Elle ne se jette pas une fois la carte mère faite. Sur un projet d'un an avec 1
 - **Le poste de mise en service** — chaque carte neuve y passe avant d'être montée : présence I2C,
   clocks détectées, PVDD correct, un canal à la fois.
 
-## 6. Position de repli
+## 7. Position de repli
 
 Si l'objection « pourquoi ne pas simplement garder les borniers sur la carte ampli » l'emporte, il
 existe une solution honnête : **garder CN1 et U3 sur la première série de cartes v2**, et ne
@@ -114,10 +203,11 @@ validation du slot avant réplication. Ce n'est pas absurde — c'est simplement
 consiste maintenant à payer 9 % de surface sur treize cartes, définitivement, pour éviter de
 concevoir une carte à 2 $ dont on a besoin de toute façon pour l'usage hors dôme.
 
-## 7. À faire
+## 8. À faire
 
 - [ ] Figer le brochage des deux connecteurs (dépend du routage de la carte ampli v2)
 - [ ] Prévoir l'empreinte de buck 24 V → 3,3 V, non peuplée par défaut
+- [ ] Vérifier D8/D9/D10 du XIAO contre le pinout officiel Seeed
 - [ ] Schéma
 - [ ] Routage 2 couches
 - [ ] Commander **avec** les cartes ampli v2, même lot
