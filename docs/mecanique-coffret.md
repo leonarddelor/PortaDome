@@ -96,7 +96,54 @@ dissipation — pas en réduction de taille.
 **La séparation des domaines devient physique** : puissance et numérique ne partagent plus ni
 connecteur ni chemin de retour. C'est la réponse structurelle à la question EM d'origine.
 
-Deux broches 2,54 mm en parallèle donnent ~6 A pour 3,4 A demandés sur PVDD.
+Deux broches 2,54 mm en parallèle donnent ~6 A pour 3,4 A demandés sur PVDD — **à condition que
+le contact tienne 3 A**, voir plus bas.
+
+### Le socket — brouillon du 2026-10-23
+
+> ⚠️ **Proposition, pas décision.** Le brochage ne sera figé qu'avec le routage de la carte ampli v2
+> (`carte-adaptation.md` §10). Il sert de base au schéma de la carte d'adaptation.
+
+| | Côté carte mère / adaptation | Côté carte ampli |
+|---|---|---|
+| Type | embase **femelle droite**, traversante, double rangée | barrette **mâle coudée 90°**, double rangée, bord inférieur |
+| Pas | 2,54 mm | 2,54 mm |
+
+Coudée côté ampli parce que c'est la seule façon de sortir les broches vers le bas d'une carte
+debout. Traversant côté socket parce que les embases portent toute la tenue mécanique de la carte.
+
+```
+Puissance 2×4             Signal 2×8
+rangée A │ rangée B       rangée A │ rangée B
+ PVDD    │ PGND             3V3    │ GND
+ PVDD    │ PGND             BCLK   │ GND
+ OUT_A+  │ OUT_A−           LRCLK  │ GND
+ OUT_B+  │ OUT_B−           SDIN   │ GND
+                            SCL    │ GND
+                            SDA    │ PDN
+                            FAULTZ │ WARNZ
+                            ADR    │ GND
+```
+
+Principe : chaque PVDD fait face à son PGND, chaque horloge ou donnée fait face à une masse — les
+boucles de courant restent minimales.
+
+**À vérifier avant de choisir la référence :**
+
+1. **Courant par contact.** Le calcul ci-dessus suppose 3 A par contact ; beaucoup d'embases
+   2,54 mm bon marché sont données pour **1 A**. Chaque sortie HP passe aussi **2,1 A sur un seul
+   contact**. Lire le courant nominal sur la fiche technique : s'il est sous 3 A, doubler aussi les
+   OUT, donc passer le connecteur puissance en 2×6.
+2. **Contacts dorés**, pas étamés : la carte est faite pour être débrochée et échangée, l'étain
+   s'use vite à l'insertion.
+3. **Détrompage.** Une embase 2,54 mm n'en a aucun ; une carte décalée d'une broche ou retournée,
+   c'est du 24 V sur une ligne 3,3 V. Parade gratuite : placer les deux connecteurs **de façon
+   asymétrique** sur le bord (2×4 d'un côté, 2×8 de l'autre, espacement non symétrique), de sorte
+   qu'une carte retournée ne s'enfiche pas. Sérigraphie de sens des deux côtés.
+4. **Hauteur.** L'embase femelle standard fait ~8,5 mm : elle fixe l'écart entre le bas de la carte
+   ampli et la carte mère, à reporter dans la hauteur du rack (§8).
+5. **Pas de branchement à chaud.** Rien ne garantit que PGND se connecte avant PVDD : couper le 24 V
+   avant toute insertion ou extraction.
 
 ### Face arrière
 
